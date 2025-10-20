@@ -1,0 +1,73 @@
+<div class="flex min-h-screen bg-gradient-to-r from-blue-50 to-white">
+  <!-- Columna izquierda con logo e ilustración -->
+  <div class="w-1/2 h-screen flex flex-col justify-center items-center bg-blue-600 relative">
+    <div class="absolute inset-0 opacity-20">
+     
+    </div>
+    <img [src]="logo" alt="Logo" class="w-1/2 h-auto z-10">
+    <h2 class="mt-4 text-white text-3xl font-bold z-10">Bienvenido a SanicoDrive</h2>
+    <p class="mt-2 text-white z-10 text-center max-w-xs">Gestiona Tus Citas de manera segura y eficiente</p>
+  </div>
+
+  <!-- Columna derecha con formulario -->
+  <div class="w-1/2 h-screen flex items-center justify-center">
+    <div class="w-full max-w-md bg-white p-10 rounded-3xl shadow-xl border border-gray-200">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800">Inicia sesión</h1>
+        <p class="text-gray-500 mt-2">Introduce tus credenciales para continuar</p>
+      </div>
+
+      <!-- Formulario -->
+      <form class="space-y-6" [formGroup]="loginForm" (ngSubmit)="submitForm()">
+        <div class="relative">
+          <label class="block text-sm font-medium text-gray-700">Correo</label>
+          <input
+            type="email"
+            formControlName="email"
+            placeholder="correo@ejemplo.com"
+            class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div class="relative">
+          <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+          <input
+            type="password"
+            formControlName="password"
+            placeholder="••••••••"
+            class="mt-1 w-full rounded-xl border border-gray-300 px-4 py-2 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <!-- Recordarme y olvidar contraseña -->
+        <div class="flex items-center justify-between text-sm text-gray-600">
+          <label class="flex items-center">
+            <input type="checkbox" class="mr-2 rounded border-gray-300" />
+            Recuérdame
+          </label>
+          <a routerLink="/forgot" class="text-blue-600 hover:underline">¿Olvidaste tu contraseña?</a>
+        </div>
+
+        <!-- Botón -->
+        <button
+          type="submit"
+          class="w-full rounded-xl bg-blue-600 py-3 text-white font-semibold hover:bg-blue-700 transition-all duration-300 shadow-md hover:shadow-lg"
+        >
+          Iniciar sesión
+        </button>
+      </form>
+
+      <!-- Divider -->
+      <div class="my-6 flex items-center">
+        <hr class="flex-1 border-gray-300" />
+        <span class="px-3 text-sm text-gray-500">o</span>
+        <hr class="flex-1 border-gray-300" />
+      </div>
+
+      <!-- Registro -->
+      <p class="text-center text-sm text-gray-600">
+        ¿No tienes cuenta?
+        <a routerLink="/register" class="text-blue-600 hover:underline font-medium">Regístrate</a>
+      </p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,234 @@
+<!-- Contenedor principal -->
+<div class="flex min-h-screen items-center justify-center bg-gray-100 ">
+  <!-- Card de registro -->
+  <div class="w-full max-w-lg overflow-hidden rounded-lg shadow-lg bg-white p-8 m-5">
+    <div class="text-center mb-6">
+      <h1 class="mt-2 text-2xl font-bold text-gray-800">Registro</h1>
+      <p class="text-gray-500">Crea tu cuenta para continuar con SanicoDrive</p>
+    </div>
+
+    <!-- Formulario -->
+    <form class="space-y-5" [formGroup]="registerForm" (ngSubmit)="submitForm()">
+      <div>
+
+        <label class="block text-sm font-medium text-gray-700">Nombre</label>
+        <input type="text" placeholder="Nombre" formControlName="firstName"
+          [ngClass]="{'border-red-500': registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched}"
+          class="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+        <p *ngIf="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched"
+          class="text-red-500 text-sm">El nombre es requerido</p>
+      </div>
+
+      <!-- Apellidos -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Apellidos</label>
+        <input type="text" placeholder="Apellidos" formControlName="lastName"
+          [ngClass]="{'border-red-500': registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched}"
+          class="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+        <p *ngIf="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched"
+          class="text-red-500 text-sm">Los apellidos son requeridos</p>
+      </div>
+
+      <!-- Teléfono -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Teléfono</label>
+        <input type="tel" placeholder="(81) 0000-0000" formControlName="phone"
+          [ngClass]="{'border-red-500': registerForm.get('phone')?.invalid && registerForm.get('phone')?.touched}"
+          class="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+        <p *ngIf="registerForm.get('phone')?.invalid && registerForm.get('phone')?.touched"
+          class="text-red-500 text-sm">
+          El teléfono es requerido</p>
+            <p *ngIf="registerForm.get('phone')?.hasError('minlength') && registerForm.get('phone')?.touched"
+          class="text-red-500 text-sm mt-1">
+          El Telefono debe tener al menos 10 caracteres
+        </p>
+      </div>
+
+      <!-- Correo -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Correo</label>
+        <input type="email" placeholder="correo@abc.com" formControlName="email"
+          [ngClass]="{'border-red-500': registerForm.get('email')?.invalid && registerForm.get('email')?.touched}"
+          class="mt-1 w-full rounded-md border px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+        <p *ngIf="registerForm.get('email')?.hasError('required') && registerForm.get('email')?.touched"
+          class="text-red-500 text-sm">El correo es requerido</p>
+        <p *ngIf="registerForm.get('email')?.hasError('email') && registerForm.get('email')?.touched"
+          class="text-red-500 text-sm">Formato de correo inválido</p>
+      </div>
+
+      <!-- Contraseña -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+        <input type="password" placeholder="••••••••" formControlName="password" class="mt-1 w-full rounded-md border px-3 py-2 
+           rounded-md focus:border-blue-500 focus:ring-2 focus:ring-blue-500
+           border-gray-300" [ngClass]="{
+      'border-red-500': registerForm.get('password')?.invalid && registerForm.get('password')?.touched
+    }" />
+        <p *ngIf="registerForm.get('password')?.hasError('required') && registerForm.get('password')?.touched"
+          class="text-red-500 text-sm mt-1">
+          La contraseña es obligatoria
+        </p>
+        <p *ngIf="registerForm.get('password')?.hasError('minlength') && registerForm.get('password')?.touched"
+          class="text-red-500 text-sm mt-1">
+          La contraseña debe tener al menos 6 caracteres
+        </p>
+      </div>
+
+      <!-- Confirmar contraseña -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Confirmar contraseña</label>
+        <input type="password" placeholder="••••••••" formControlName="confirmPassword" class="mt-1 w-full rounded-md border px-3 py-2 
+           focus:border-blue-500 focus:ring-2 focus:ring-blue-500 border-gray-300" [ngClass]="{
+      'border-red-500': registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched
+    }" />
+        <p *ngIf="registerForm.get('confirmPassword')?.hasError('required') && registerForm.get('confirmPassword')?.touched"
+          class="text-red-500 text-sm mt-1">
+          Debes confirmar la contraseña
+        </p>
+      </div>
+
+      <!-- Calle -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Calle y número</label>
+        <input type="text" placeholder="Calle y número" formControlName="street" class="mt-1 w-full rounded-md border px-3 py-2 
+           focus:border-blue-500 focus:ring-2 focus:ring-blue-500 border-gray-300" [ngClass]="{
+      'border-red-500': registerForm.get('street')?.invalid && registerForm.get('street')?.touched
+    }" />
+        <p *ngIf="registerForm.get('street')?.hasError('required') && registerForm.get('street')?.touched"
+          class="text-red-500 text-sm mt-1">
+          La calle es obligatoria
+        </p>
+      </div>
+      <!-- Colonia -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Colonia</label>
+        <input type="text" placeholder="Colonia" formControlName="colony" class="mt-1 w-full rounded-md border px-3 py-2 
+           focus:border-blue-500 focus:ring-2 focus:ring-blue-500 border-gray-300" [ngClass]="{
+      'border-red-500': registerForm.get('colony')?.invalid && registerForm.get('colony')?.touched
+    }" />
+        <p *ngIf="registerForm.get('colony')?.hasError('required') && registerForm.get('colony')?.touched"
+          class="text-red-500 text-sm mt-1">
+          La colonia es obligatoria
+        </p>
+      </div>
+
+      <!-- Estado -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Estado</label>
+        <input type="text" placeholder="Estado" formControlName="state" class="mt-1 w-full rounded-md border px-3 py-2 
+           focus:border-blue-500 focus:ring-2 focus:ring-blue-500 border-gray-300" [ngClass]="{
+      'border-red-500': registerForm.get('state')?.invalid && registerForm.get('state')?.touched
+    }" />
+        <p *ngIf="registerForm.get('state')?.hasError('required') && registerForm.get('state')?.touched"
+          class="text-red-500 text-sm mt-1">
+          El estado es obligatorio
+        </p>
+      </div>
+
+      <!-- Código Postal -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Código Postal</label>
+        <input type="text" placeholder="12345" formControlName="postalCode"
+          [ngClass]="{'border-red-500': registerForm.get('postalCode')?.invalid && registerForm.get('postalCode')?.touched}"
+         class="mt-1 w-full rounded-md border px-3 py-2 
+           focus:border-blue-500 focus:ring-2 focus:ring-blue-500 border-gray-300" />
+             <p *ngIf="registerForm.get('postalCode')?.invalid && registerForm.get('postalCode')?.touched"
+          class="text-red-500 text-sm">
+          El Código Postal es requerido</p>
+            <p *ngIf="registerForm.get('postalCode')?.hasError('minlength') && registerForm.get('postalCode')?.touched"
+          class="text-red-500 text-sm mt-1">
+          El Código Postal debe tener al menos 5 caracteres
+        </p>
+      </div>
+
+      <!-- Términos y condiciones -->
+      <div class="flex items-center">
+        <input type="checkbox" id="termsCheck" formControlName="terms" class="mr-2 rounded border-gray-300" required />
+        <label class="text-sm text-gray-600">
+          Acepto los
+          <button type="button" class="text-blue-600 hover:underline" (click)="openTerms()">términos y
+            condiciones</button>
+        </label>
+      </div>
+
+      <!-- Botón de registro -->
+      <button type="submit"
+        class="w-full rounded-md bg-blue-600 py-2 text-white font-semibold hover:bg-blue-700 transition">
+        Registrarme
+      </button>
+    </form>
+
+    <!-- Enlace a iniciar sesión -->
+    <p class="mt-6 text-center text-sm text-gray-600">
+      ¿Ya tienes cuenta?
+      <a routerLink="/login" class="text-blue-600 hover:underline">Inicia sesión</a>
+    </p>
+  </div>
+</div>
+
+<div *ngIf="showTermsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+  <div class="bg-white w-full max-w-3xl rounded-lg shadow-lg p-8 overflow-y-auto" style="max-height: 90vh;">
+
+    <h1 class="text-2xl font-bold mb-6 text-gray-800 text-center">Términos y Condiciones</h1>
+
+    <p class="mb-4 text-gray-700">
+      Bienvenido a SanicoDrive. Al utilizar nuestra aplicación para aprobar citas y gestionar servicios de instructores
+      de manejo, usted acepta cumplir con los siguientes términos y condiciones.
+    </p>
+
+    <h2 class="text-xl font-semibold mt-6 mb-2 text-gray-800">1. Uso de la Aplicación</h2>
+    <p class="mb-4 text-gray-700">
+      La aplicación está destinada únicamente a la gestión de citas para la instrucción de manejo. No se permite el uso
+      de la app para fines ilegales, fraudulentos o no autorizados.
+    </p>
+
+    <h2 class="text-xl font-semibold mt-6 mb-2 text-gray-800">2. Registro y Cuentas</h2>
+    <p class="mb-4 text-gray-700">
+      Para utilizar la aplicación, es necesario crear una cuenta válida. Usted es responsable de mantener la
+      confidencialidad de sus credenciales y de toda actividad que ocurra bajo su cuenta.
+    </p>
+
+    <h2 class="text-2xl font-semibold mt-6 mb-2 text-gray-800">3. Responsabilidades del Usuario</h2>
+    <p class="mb-4 text-gray-700">
+      Usted se compromete a proporcionar información veraz al aprobar citas y reportar cualquier actividad sospechosa.
+      La empresa no se hace responsable por citas mal gestionadas debido a información incorrecta proporcionada por el
+      usuario.
+    </p>
+
+    <h2 class="text-2xl font-semibold mt-6 mb-2 text-gray-800">4. Privacidad y Datos Personales</h2>
+    <p class="mb-4 text-gray-700">
+      Todos los datos recolectados se utilizarán únicamente para fines de gestión de citas y prestación del servicio de
+      instructores de manejo. No compartiremos su información con terceros sin su consentimiento explícito.
+    </p>
+
+    <h2 class="text-2xl font-semibold mt-6 mb-2 text-gray-800">5. Modificaciones de los Términos</h2>
+    <p class="mb-4 text-gray-700">
+      Nos reservamos el derecho de modificar estos términos en cualquier momento. Las modificaciones se aplicarán
+      inmediatamente al publicarse en la app. Se recomienda revisar esta sección periódicamente.
+    </p>
+
+    <h2 class="text-2xl font-semibold mt-6 mb-2 text-gray-800">6. Contacto</h2>
+    <p class="mb-4 text-gray-700">
+      Si tiene dudas sobre estos términos, puede contactarnos en:
+      <a href="mailto:soporte@sanicodrive.com" class="text-blue-600 hover:underline">soporte@sanicodrive.com</a>.
+    </p>
+
+    <div class="mt-6 text-center">
+      <p class="text-gray-700 font-medium">
+        Al continuar usando esta aplicación, usted reconoce que ha leído, entendido y aceptado estos términos y
+        condiciones.
+      </p>
+
+      <!-- Botones -->
+      <div class="mt-6 flex justify-end gap-4">
+        <button class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition"
+          (click)="cancelTerms()">
+          Cancelar
+        </button>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition" (click)="acceptTerms()">
+          Acepto
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,59 @@
+<div class="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+  <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md text-center">
+    <!-- Logo -->
+    <div class="flex justify-center mb-6">
+      <img
+        src="assets/sanicoDriveInit.png"
+        alt="Logo Empresa"
+        class="w-24 h-24 object-contain"
+      />
+    </div>
+
+    <!-- Título -->
+    <h1 class="text-2xl font-semibold text-gray-800 mb-2">
+      Solicitud de Baja de Usuario
+    </h1>
+
+    <!-- Subtítulo empático -->
+    <p class="text-gray-600 mb-6">
+      Lamentamos tu partida 
+      Si deseas eliminar tu cuenta, ingresa tu correo electrónico para enviar la solicitud.
+    </p>
+
+    <!-- Formulario -->
+    <form (ngSubmit)="onSubmit()" class="space-y-4">
+      <div class="text-left">
+        <label
+          for="email"
+          class="block text-sm font-medium text-gray-700 mb-1"
+          >Correo electrónico</label
+        >
+        <input
+          type="email"
+          id="email"
+          name="email"
+          [(ngModel)]="email"
+          placeholder="ejemplo@correo.com"
+          required
+          class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <button
+        type="submit"
+        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition"
+      >
+        Enviar Solicitud
+      </button>
+    </form>
+
+    <!-- Mensaje final -->
+    <p class="text-xs text-gray-500 mt-6">
+      Tu información será procesada conforme a nuestra política de privacidad.
+    </p>
+
+    <footer class="mt-8 text-gray-400 text-sm">
+      © 2025 SanicoDrive. Todos los derechos reservados.
+    </footer>
+  </div>
+</div>

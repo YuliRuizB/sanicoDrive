@@ -1,0 +1,305 @@
+<div class="min-h-screen bg-gray-100">
+  <!-- Barra superior -->
+  <header class="bg-white shadow-xl">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between relative">
+      <!-- Logo -->
+      <div class="flex items-center space-x-2">
+        <img src="assets/sanicodrivelogo.png" alt="Logo Sanico Drive"
+          class="h-10 w-10 rounded-full object-cover" />
+        <span class="text-lg font-bold text-gray-800">Sanico Drive</span>
+      </div>
+
+      <!-- Título centrado -->
+      <div class="absolute left-1/2 transform -translate-x-1/2">
+        <h1 class="text-xl font-bold text-gray-800">Programación Citas</h1>
+      </div>
+
+      <!-- Usuario -->
+      <div class="ml-auto flex items-center space-x-4">
+        <span class="text-gray-700 font-medium">{{ user?.displayName }}</span>
+        <a href="javascript:void(0)" (click)="logout()" class="relative group">
+          <img src="assets/logout.png" alt="Logout" class="h-6 w-6 hover:opacity-80 transition" />
+          <span
+            class="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 px-2 py-1 text-xs text-white bg-gray-800 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+            Cerrar sesión
+          </span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="p-6">
+    <!-- Tabs -->
+    <div class="flex justify-center mb-6 gap-6 text-lg font-semibold">
+      <span class="cursor-pointer transition" [class.text-blue-600]="selectedTab === 'citas'"
+        (click)="selectedTab = 'citas'">
+        Bandeja de Entrada
+      </span>
+      |
+      <span class="cursor-pointer transition" [class.text-blue-600]="selectedTab === 'programacion'"
+        (click)="selectedTab = 'programacion'">
+        Bitácora
+      </span>
+      |
+      <span class="cursor-pointer transition" [class.text-blue-600]="selectedTab === 'configuracion'"
+        (click)="selectedTab = 'configuracion'">
+        Configuración
+      </span>
+    </div>
+
+    <!-- Bandeja de Entrada -->
+    <div *ngIf="selectedTab === 'citas'" class="flex h-screen p-6 bg-gray-100 gap-6">
+      <!-- 🧩 Filtros -->
+      <div class="w-64 bg-white rounded-xl shadow-lg p-4 flex flex-col gap-4">
+        <h3 class="text-lg font-semibold mb-2">Filtros</h3>
+
+        <div class="flex items-center gap-2">
+          <input type="checkbox" id="filterToday" [(ngModel)]="filterToday"
+            class="h-4 w-4 text-blue-500 border-gray-300 rounded focus:ring-blue-400" />
+          <label for="filterToday" class="text-sm font-medium text-gray-700">Creadas hoy</label>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium text-gray-700" for="filterName">Nombre</label>
+          <input type="text" id="filterName" [(ngModel)]="filterName" placeholder="Buscar asistente"
+            class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400" />
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium text-gray-700" for="filterCalendar">Fecha</label>
+          <select id="filterCalendar" [(ngModel)]="filterCalendar"
+            class="border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="">Todas</option>
+            <option *ngFor="let cal of calendarList" [value]="cal.uid">
+              {{ cal.title }} ({{ getShortDateRange(cal.startDate, cal.endDate) }})
+            </option>
+          </select>
+        </div>
+
+        <button class="bg-gray-200 hover:bg-gray-300 px-3 py-2 rounded text-sm" (click)="clearFilters()">
+          Limpiar filtros
+        </button>
+
+        <h3 class="text-sm font-medium text-gray-700 mt-2">Estatus Cita</h3>
+        <div *ngFor="let status of statuses" (click)="setSelectedStatus(status.value)"
+          [class.bg-gray-100]="selectedStatus !== status.value"
+          [class.bg-gray-200]="selectedStatus === status.value"
+          class="flex items-center justify-between p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer transition">
+          <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full" [ngClass]="status.colorClass"></span>
+            <span class="font-small">{{ status.name }}</span>
+          </div>
+          <span class="text-gray-600 font-small">{{ status.count }}</span>
+        </div>
+      </div>
+
+      <!-- 🧩 Tabla de citas -->
+      <div class="flex-1 bg-white rounded-xl shadow-lg p-6 overflow-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">
+            Citas ({{ selectedStatusName }})
+          </h3>
+          <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+            (click)="export()">
+            Exportar
+          </button>
+        </div>
+
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="p-3 border-b">Asistente</th>
+              <th class="p-3 border-b">Referencia</th>
+              <th class="p-3 border-b">Fecha</th>
+              <th class="p-3 border-b">Hora</th>
+              <th class="p-3 border-b">Status</th>
+              <th class="p-3 border-b">Comprobante</th>
+              <th class="p-3 border-b">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let order of filteredOrders()" class="hover:bg-gray-50">
+              <td class="p-3 border-b">{{ order.nameofAsistent }}</td>
+              <td class="p-3 border-b">{{ order.reference }}</td>
+              <td class="p-3 border-b">{{ getCalendarTitle(order.uidCalendar) }}</td>
+              <td class="p-3 border-b">{{ getCalendarTime(order.uidCalendar) }}</td>
+              <td class="p-3 border-b">{{ getStatusLabel(order.status) }}</td>
+              <td class="p-3 border-b">
+                <a *ngIf="order.urlFile" [href]="order.urlFile" target="_blank" rel="noopener noreferrer"
+                  class="text-blue-600 hover:underline">Ver archivo</a>
+                <span *ngIf="!order.urlFile" class="text-gray-400">Sin archivo</span>
+              </td>
+              <td class="p-3 border-b flex gap-2">
+                <button class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600 transition"
+                  (click)="acceptApp(order)">
+                  Aceptar
+                </button>
+                <button class="bg-yellow-400 text-white px-3 py-1 rounded hover:bg-yellow-500 transition"
+                  (click)="switchDateApp(order)">
+                  Cambiar
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bitácora -->
+    <div *ngIf="selectedTab === 'programacion'" class="flex flex-col h-screen p-6 bg-gray-100 gap-6">
+      <h3 class="text-lg font-semibold text-center">Fecha de bitácora</h3>
+
+      <div class="w-full flex justify-center mb-6">
+        <div class="w-64">
+          <select id="filterCalendarBitacora" [(ngModel)]="selectedBitacoraCalendar" (change)="loadBitacoras()"
+            class="w-full border border-gray-300 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <option value="">Seleccionar calendario</option>
+            <option *ngFor="let cal of calendarList" [value]="cal.uid">
+              {{ cal.title }} ({{ getShortDateRange(cal.startDate, cal.endDate) }})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div class="w-full bg-white rounded-xl shadow-lg p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">
+            Bitácora ({{ selectedBitacoraDate || 'Sin fecha' }})
+          </h3>
+          <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+            (click)="exportBitacoras()">Exportar</button>
+        </div>
+
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="p-3 border-b">Asistente</th>
+              <th class="p-3 border-b">Referencia</th>
+              <th class="p-3 border-b">Fecha</th>
+              <th class="p-3 border-b">Hora</th>
+              <th class="p-3 border-b">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let bit of bitacoras" class="hover:bg-gray-50">
+              <td class="p-3 border-b">{{ bit.nameofAsistent }}</td>
+              <td class="p-3 border-b">{{ bit.reference }}</td>
+              <td class="p-3 border-b">{{ bit.requestedDate }}</td>
+              <td class="p-3 border-b">{{ bit.requestedTime }}</td>
+              <td class="p-3 border-b">{{ getStatusLabel(bit.status) }}</td>
+            </tr>
+            <tr *ngIf="bitacoras.length === 0">
+              <td colspan="5" class="p-4 text-center text-gray-400">No hay registros</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Configuración -->
+    <div *ngIf="selectedTab === 'configuracion'" class="flex h-screen p-6 bg-gray-100 gap-6">
+      <div class="flex-1 bg-white rounded-xl shadow-lg p-6 flex flex-col text-gray-700">
+        <h3 class="text-lg font-semibold mb-4 text-center">Configuración de Calendarios</h3>
+
+        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+          <h4 class="font-semibold mb-2">
+            {{ selectedCalendar ? 'Editar Calendario' : 'Nuevo Calendario' }}
+          </h4>
+
+          <div class="grid grid-cols-2 gap-4">
+            <input [(ngModel)]="(selectedCalendar || newCalendar).title" placeholder="Título"
+              class="border p-2 rounded" />
+
+            <select [(ngModel)]="(selectedCalendar || newCalendar).time" class="border p-2 rounded">
+              <option value="" disabled>Selecciona horario</option>
+              <option value="9:00 AM">9:00 AM</option>
+              <option value="1:00 PM">1:00 PM</option>
+            </select>
+
+            <input type="date" [(ngModel)]="(selectedCalendar || newCalendar).startDate" class="border p-2 rounded" />
+
+            <input type="date" [(ngModel)]="(selectedCalendar || newCalendar).endDate" class="border p-2 rounded" />
+
+            <input type="number" [(ngModel)]="(selectedCalendar || newCalendar).amountSpaces" placeholder="Espacios"
+              class="border p-2 rounded" />
+          </div>
+
+          <div class="flex justify-end gap-2 mt-4">
+            <button *ngIf="selectedCalendar" (click)="cancelEdit()"
+              class="bg-gray-400 text-white px-3 py-1 rounded hover:bg-gray-500">
+              Cancelar
+            </button>
+            <button (click)="saveCalendar()" class="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+              {{ selectedCalendar ? 'Actualizar' : 'Agregar' }}
+            </button>
+          </div>
+        </div>
+
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="p-3 border-b">Título</th>
+              <th class="p-3 border-b">Fechas</th>
+              <th class="p-3 border-b">Horario</th>
+              <th class="p-3 border-b">Espacios</th>
+              <th class="p-3 border-b">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let cal of calendarList" class="hover:bg-gray-50">
+              <td class="p-3 border-b">{{ cal.title }}</td>
+              <td class="p-3 border-b">{{ cal.startDate | date }} - {{ cal.endDate | date }}</td>
+              <td class="p-3 border-b">{{ cal.time }}</td>
+              <td class="p-3 border-b">{{ cal.amountSpaces }}</td>
+              <td class="p-3 border-b flex gap-2">
+                <button (click)="selectCalendar(cal)"
+                  class="bg-yellow-400 text-white px-2 py-1 rounded hover:bg-yellow-500">
+                  Editar
+                </button>
+                <button (click)="deleteCalendar(cal.uid)"
+                  class="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="calendarList.length === 0">
+              <td colspan="5" class="p-4 text-center text-gray-400">No hay registros</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal -->
+  <div *ngIf="showModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    <div class="bg-white rounded-lg shadow-lg w-96 p-6">
+      <h2 class="text-lg font-semibold mb-4">Cambiar estado de cita</h2>
+
+      <!-- Estado -->
+      <label for="status" class="block text-sm font-medium text-gray-700">Selecciona un estado:</label>
+      <select [(ngModel)]="selectedStatusModal" id="status" class="w-full mt-2 border rounded px-3 py-2">
+        <option *ngFor="let s of statusesList" [value]="s.value" [disabled]="s.value === 'all'">
+          {{ s.name }}
+        </option>
+      </select>
+
+      <!-- Fecha -->
+      <label class="block mt-4 text-sm font-medium text-gray-700" for="filterCalendar">Selecciona una fecha:</label>
+      <select id="filterCalendar" [(ngModel)]="selectedCalendar" class="w-full border rounded px-3 py-2 mt-2">
+        <option value="" disabled selected>Selecciona fecha</option>
+        <option *ngFor="let cal of calendarList" [ngValue]="cal">
+          {{ cal.title }} ({{ getShortDateRange(cal.startDate, cal.endDate) }}) - {{ cal.time }}
+        </option>
+      </select>
+
+      <!-- Botones -->
+      <div class="flex justify-end space-x-2 mt-6">
+        <button (click)="closeModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancelar</button>
+        <button (click)="saveChange()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          Guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
