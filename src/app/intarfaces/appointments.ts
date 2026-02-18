@@ -16,4 +16,5 @@ export interface Appointment {
   urlFile?: string;
   title?:string;
   time?:string;
+  folio?:string;
 }

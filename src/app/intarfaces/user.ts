@@ -1,3 +1,6 @@
+import { Time } from "@angular/common";
+import { Timestamp } from "firebase/firestore";
+
 export interface User  {
   firstName: string;
   lastName: string;
@@ -16,7 +19,10 @@ export interface User  {
   phoneInfo?: object | any;
   terms: boolean;
   createdAt: string;
-  createTimeStamp: number;
+  createTimeStamp?: Timestamp;
   role?: string;
   token:string;
+  urlDocument?:string;
+  municipality?:string;
+  
 }

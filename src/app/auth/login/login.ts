@@ -20,8 +20,6 @@ export class LoginComponent {
   error = '';
   showPassword = false;
   submitted = false;
- /*  eye = eye;
-  eyeOff = eyeOff; */
 
   constructor(private fb: FormBuilder, private toastService: ToastService, private authService: AuthService) {
     this.loginForm = this.fb.group({

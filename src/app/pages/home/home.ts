@@ -28,7 +28,7 @@ export class HomeComponent {
   selectedBitacoraDate: string = '';
   bitacoras: any[] = [];
   filterTime: string = '';
-  selectedCalendar!: calendar;
+  selectedCalendar: calendar | null = null;
   filterCalendar: string = '';
   selectedBitacoraCalendar: string = '';
   statuses = [
@@ -48,9 +48,10 @@ export class HomeComponent {
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
     time: '',
-    amountSpaces: 1,
+    amountSpaces: 0,
     uidCompany: 'uHROo7SIDL7kJqr1fUER',
-    active: true
+    active: true,
+    lastDateofSuscribe: null,
   };
   bitacoraStatusCounts: { [key: string]: number } = {};
   orders: Appointment[] = [];
@@ -60,6 +61,26 @@ export class HomeComponent {
   calendarList: calendar[] = [];
   availableTimes: string[] = ['9:00 AM', '1:00 PM'];
   selectedTime: string = '';
+  usersList: User[] = [];
+  pageSize = 15;
+  pageIndex = 0;
+  municipalityFilter = '';
+  dateFrom: string | null = null;
+  dateTo: string | null = null;
+  filteredUsers: any[] = [];
+  paginatedUsers: any[] = [];
+  userDocumentMap: { [uid: string]: string | null } = {};
+  urlDoc: string = "";
+  userDocMap: Record<string, string | null | undefined> = {};
+  private loadingUids = new Set<string>();
+  calendarPageSize = 10;
+  calendarPageIndex = 0;
+  paginatedCalendars: calendar[] = [];
+  ordersPageSizeOptions = [5, 10, 20, 40];
+  ordersPageSize = 10; // default
+  ordersPageIndex = 0;
+  paginatedOrders: Appointment[] = [];
+
 
   constructor(
     private auth: AuthService,
@@ -74,10 +95,24 @@ export class HomeComponent {
     this.auth.user$.subscribe(userData => {
       this.user = userData;
       if (userData) {
+
         this.loadCalendars();
         this.getAppointments();
+        this.getUsersList();
       }
     });
+  }
+
+  async getUsersList() {
+    try {
+      this.usersList = await this.appService.getUsersByCompany(this.user.uidCompany);
+
+      this.applyFilters();
+    } catch (e) {
+      console.error(e);
+      this.toastService.error('No se pudieron cargar los usuarios.', 'Sanico Drive Informa');
+    }
+
   }
 
   getAppointments() {
@@ -107,8 +142,8 @@ export class HomeComponent {
           return {
             active: order.active ?? true,
             createdDate: normalizeDate(order.createdDate),
-            requestedDate: order.requestedDate ?? '', 
-            requestedTime: order.requestedTime ?? '', 
+            requestedDate: order.requestedDate ?? '',
+            requestedTime: order.requestedTime ?? '',
             nameofAsistent: order.nameofAsistent ?? 'Sin nombre',
             status: normalizedStatus,
             uid: order.uid ?? '',
@@ -117,17 +152,23 @@ export class HomeComponent {
             urlFile: order.urlFile ?? '',
             reference: order.reference ?? '',
             uidCalendar: order.uidCalendar ?? '',
+            lastDateofSuscribe: normalizeDate(order.lastDateofSuscribe),
+            folio: order.folio ?? ''
           };
         });
+
+        this.preloadDocsForOrders(this.orders);
 
         this.orders.sort((a, b) => {
           const dateA = a.requestedDate ? new Date(a.requestedDate).getTime() : 0;
           const dateB = b.requestedDate ? new Date(b.requestedDate).getTime() : 0;
-          return dateB - dateA; 
+          return dateB - dateA;
         });
 
         this.updateStatusCounts();
         this.selectedStatus = 'all';
+        this.ordersPageIndex = 0;
+        this.applyOrdersPagination();
         this.cd.detectChanges();
       },
       error: (err) => {
@@ -141,34 +182,70 @@ export class HomeComponent {
   }
 
   async saveCalendar() {
-    if (this.selectedCalendar?.uid) {
-      await this.configService.updateCalendar(this.selectedCalendar.uid, this.selectedCalendar);
-    } else {
-      const newCal = {
-        ...this.newCalendar,
-        createdAt: new Date().toISOString(),
-      } as calendar;
-      await this.configService.addCalendar(newCal);
-      this.newCalendar = {};
-      this.cd.detectChanges();
+    try {
+      if (this.selectedCalendar?.uid) {
+        await this.configService.updateCalendar(this.selectedCalendar.uid, this.selectedCalendar);
+
+        this.toastService.success('Calendario actualizado con éxito.', 'Sanico Drive Informa');
+      } else {
+        if (!this.newCalendar?.title?.trim()) {
+          this.toastService.error('El título es obligatorio.', 'Sanico Drive Informa');
+          return;
+        }
+        if (!this.newCalendar?.startDate || !this.newCalendar?.endDate) {
+          this.toastService.error('Fecha inicio y fin son obligatorias.', 'Sanico Drive Informa');
+          return;
+        }
+        if (!this.newCalendar?.time) {
+          this.toastService.error('La hora es obligatoria.', 'Sanico Drive Informa');
+          return;
+        }
+
+        const newCal: calendar = {
+          uidCompany: this.newCalendar.uidCompany ?? this.user.uidCompany,
+          title: this.newCalendar.title.trim(),
+          startDate: this.newCalendar.startDate,
+          endDate: this.newCalendar.endDate,
+          time: this.newCalendar.time,
+          amountSpaces: this.newCalendar.amountSpaces ?? 0,
+          maxSpaces: this.newCalendar.maxSpaces ?? 0,
+          active: this.newCalendar.active ?? true,
+          lastDateofSuscribe: this.newCalendar.lastDateofSuscribe ?? null,
+          createdAt: new Date().toISOString(),
+        };
+
+        await this.configService.addCalendar(newCal);
+
+        this.toastService.success('Calendario creado con éxito.', 'Sanico Drive Informa');
+        this.newCalendar = {};
+        this.cd.detectChanges();
+      }
+
+      await this.loadCalendars();
+    } catch (error) {
+      console.error('Error saving calendar:', error);
+      this.toastService.error('No se pudo guardar el calendario. Intenta nuevamente.', 'Sanico Drive Informa');
     }
-    await this.loadCalendars();
   }
 
   loadCalendars(): Promise<void> {
+
     return new Promise((resolve) => {
       this.configService.getCalendarList(this.user.uidCompany).subscribe({
         next: (data) => {
-          this.calendarList = data;
-          this.cd.detectChanges();
 
-          if (this.orders.length > 0) {
-            this.orders = [...this.orders];
-            this.cd.detectChanges();
-          }
+          this.calendarList = data;
+          this.calendarPageIndex = 0;
+          this.applyCalendarPagination();
+
+          this.cd.detectChanges();
           resolve();
         },
-        error: () => resolve()
+        error: (err) => {
+          console.error('🔥 Error getCalendarList:', err);
+          this.toastService.error('Error cargando calendarios (revisa consola).', 'Sanico Drive Informa');
+          resolve();
+        }
       });
     });
   }
@@ -179,7 +256,6 @@ export class HomeComponent {
 
   updateStatusCounts() {
     this.resetStatusCounts();
-
     this.orders.forEach(order => {
       const statusItem = this.statuses.find(s => s.value === order.status);
       if (statusItem) statusItem.count++;
@@ -215,18 +291,17 @@ export class HomeComponent {
     if (!ordersToExport.length) {
       this.toastService.error('No hay citas para exportar', 'Sanico Drive Informa');
       return;
-    }
-
-    const csvHeader = ['Nombre', 'Fecha', 'Hora', 'Comprobante'];
+    }    
+    const csvHeader = ['Nombre', 'Fecha', 'Hora', 'Comprobante', 'Identificacion'];
     const csvRows = ordersToExport.map(order => [
       order.nameofAsistent,
       order.requestedDate || '',
       order.requestedTime || '',
-      order.urlFile || ''
+      order.urlFile || '',
+      this.userDocMap[order.uidUser] || ''
     ]);
 
     const csvContent = [csvHeader, ...csvRows].map(e => e.join(',')).join('\n');
-
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -240,7 +315,7 @@ export class HomeComponent {
 
   setSelectedStatus(value: string) {
     this.selectedStatus = value;
-    this.cd.detectChanges();
+    this.resetOrdersPagination();
   }
 
   get selectedStatusName(): string {
@@ -254,34 +329,26 @@ export class HomeComponent {
         this.toastService.error('No existe el usuario asociado', 'Sanico Drive Informa');
         return;
       }
-
       const calendar = this.calendarList.find(c => c.uid === order.uidCalendar);
       if (!calendar) {
         this.toastService.error('No se encontró el calendario asociado a esta cita', 'Sanico Drive Informa');
         return;
       }
-      
       if (calendar.amountSpaces <= 0) {
         this.toastService.error('No hay espacios disponibles para aprobar esta cita.', 'Sanico Drive Informa');
         return;
       }
-     
       if (order.status === 'approved') {
         this.toastService.info('La cita ya estaba aprobada.', 'Sanico Drive Informa');
         return;
       }
-     
-      const newSpaces = calendar.amountSpaces - 1;
-     
+      const newSpaces = calendar.amountSpaces;
       await this.appService.updateAppoinmentStatus(order.uid, 'approved');
-    
       await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
-
       this.toastService.success('Se aprobó la cita con éxito.', 'Sanico Drive Informa');
       this.sendNotification('La cita ha sido Aceptada.', user.token);
-      this.sendEmail(user.email, 'Cita Aceptada', 'approved', order.requestedDate, order.requestedTime, 'Tu cita ha sido Aceptada.');
+      this.sendEmail(user.email, 'Cita Aceptada', 'approved', calendar.startDate, calendar.time, 'Tu cita ha sido Aceptada.');
 
-      
       await this.loadCalendars();
       this.getAppointments();
       this.cd.detectChanges();
@@ -299,25 +366,20 @@ export class HomeComponent {
         this.toastService.error('No existe el usuario asociado', 'Sanico Drive Informa');
         return;
       }
-
       const calendar = this.calendarList.find(c => c.uid === order.uidCalendar);
       if (!calendar) {
         this.toastService.error('No se encontró el calendario asociado a esta cita', 'Sanico Drive Informa');
         return;
       }
-
       let newSpaces = calendar.amountSpaces ?? 0;
-      
       if (order.status === 'approved') {
-        newSpaces += 1;
+        newSpaces;
       }
-     
-      await this.appService.updateAppoinmentStatus(order.uid, 'rejected');     
+      await this.appService.updateAppoinmentStatus(order.uid, 'rejected');
       await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
-
       this.toastService.success('Se rechazó la cita con éxito.', 'Sanico Drive Informa');
       this.sendNotification('La cita ha sido rechazada, favor de validar.', user.token);
-      this.sendEmail(user.email, 'Cita Rechazada', 'rejected', order.requestedDate, order.requestedTime, 'Tu cita ha sido Rechazada, favor de validar.');
+      this.sendEmail(user.email, 'Cita Rechazada', 'rejected', calendar.startDate, calendar.time, 'Tu cita ha sido Rechazada, favor de validar.');
 
       await this.loadCalendars();
       this.getAppointments();
@@ -351,7 +413,17 @@ export class HomeComponent {
       this.toastService.error('No hay cita seleccionada.', 'Sanico Drive Informa');
       return;
     }
+
     const order = this.selectedOrder;
+    const newStatus = this.selectedStatusModal;
+    const reason = (this.comments ?? '').trim();
+
+    // Validación: razón obligatoria si cancelan
+    if (newStatus === 'canceled' && !reason) {
+      this.toastService.error('Escribe la razón de cancelación.', 'SanNico Drive Informa');
+      return;
+    }
+
     try {
       const user = await this.appService.getUserById(order.uidUser);
       if (!user) {
@@ -367,44 +439,56 @@ export class HomeComponent {
         return;
       }
 
-      const newStatus = this.selectedStatusModal;
-      let newSpaces = calendar.amountSpaces ?? 0;
-
-      if (newStatus === 'approved') {
-        if (calendar.amountSpaces <= 0) {
-          this.toastService.error('No hay espacios disponibles para aprobar esta cita.', 'Sanico Drive Informa');
-          return;
-        }
-        if (order.status !== 'approved') {
-          newSpaces -= 1;
-        }
-      }
-      if (newStatus !== 'approved' && order.status === 'approved') {
-        newSpaces += 1;
-      }
-
-      if (newStatus === 'rejected' && order.status === 'approved') {
-        newSpaces += 1;
-      }
-
       await this.appService.updateAppoinmentStatus(order.uid, newStatus);
 
-      if (newSpaces !== calendar.amountSpaces) {
-        await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
+
+      const statusLabel =
+        this.statusesList.find(s => s.value === newStatus)?.name
+        ?? (newStatus.charAt(0).toUpperCase() + newStatus.slice(1));
+
+      let title = `Cita ${statusLabel}`;
+      let description = 'Tu cita ha cambiado de estado.';
+
+      if (newStatus === 'approved') {
+        description = 'Tu cita ha sido Aceptada.';
+      } else if (newStatus === 'rejected') {
+        description = 'Tu cita ha sido Rechazada, favor de validar.';
+      } else if (newStatus === 'finalize') {
+        description = 'Tu cita ha sido Finalizada.';
+      } else if (newStatus === 'canceled') {
+        title = 'Cita Cancelada';
+        description = `Tu cita ha sido Cancelada.\nRazón: ${reason}`;
       }
+
+      await this.appService.addMessage({
+        uidCompany: this.user.uidCompany,
+        uidUser: user.uid,
+        uidApoinment: order.uid,
+        active: true,
+        title,
+        description,
+        seen: false,
+        createdAt: null
+      });
+
+      this.sendNotification(description, user.token);
+      this.sendEmail(
+        user.email,
+        title,
+        newStatus,
+        calendar.startDate,
+        calendar.time,
+        description
+      );
 
       this.toastService.success('Los cambios se guardaron con éxito.', 'Sanico Drive Informa');
 
-      const msg =
-        newStatus === 'approved'
-          ? 'Tu cita ha sido Aceptada.'
-          : newStatus === 'rejected'
-            ? 'Tu cita ha sido Rechazada, favor de validar.'
-            : 'Tu cita ha cambiado de estado.';
-      this.sendNotification(msg, user.token);
-      this.sendEmail(user.email, `Cita ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`, newStatus, order.requestedDate, order.requestedTime, msg);
-      
+
       this.showModal = false;
+      this.selectedOrder = null;
+      this.selectedStatusModal = '';
+      this.comments = '';
+
       await this.loadCalendars();
       this.getAppointments();
       this.cd.detectChanges();
@@ -415,11 +499,13 @@ export class HomeComponent {
     }
   }
 
+
   clearFilters() {
     this.filterName = '';
     this.filterCalendar = '';
     this.selectedStatus = 'all';
     this.filterToday = false;
+    this.resetOrdersPagination();
     this.cd.detectChanges();
   }
 
@@ -441,8 +527,15 @@ export class HomeComponent {
 
   getSelectedCalendarSpaces(): number | string {
     if (!this.selectedBitacoraCalendar) return 'N/A';
-    const cal = this.calendarList.find(c => c.uid === this.selectedBitacoraCalendar);
-    return cal ? cal.amountSpaces : 'N/A';
+
+    const cal = this.calendarList.find(
+      c => c.uid === this.selectedBitacoraCalendar
+    );
+
+    if (!cal || cal.amountSpaces == null) return 'N/A';
+
+    const totalSpaces = 20;
+    return totalSpaces - cal.amountSpaces;
   }
 
   loadBitacoras() {
@@ -451,28 +544,27 @@ export class HomeComponent {
       this.selectedBitacoraDate = '';
       return;
     }
-
     this.appService.getOrderBit(this.user.uidCompany, this.selectedBitacoraCalendar).subscribe({
-      next: (data) => {             
+      next: (data) => {
         this.bitacoras = data.map(order => ({
           nameofAsistent: order.nameofAsistent ?? 'Sin nombre',
           requestedDate: this.getCalendarTitle(order.uidCalendar) ?? '',
           requestedTime: this.getCalendarTime(order.uidCalendar) ?? '',
           status: order.status ?? 'pending',
-          reference: order.reference ?? ''
-        }));        
+          reference: order.reference ?? '',
+          folio: order.folio ?? ''
+        }));
         const selectedCalendar = this.calendarList.find(
           c => c.uid?.toString() === this.selectedBitacoraCalendar?.toString()
         );
         this.selectedBitacoraDate = selectedCalendar
           ? `${selectedCalendar.title} (${this.getShortDateRange(selectedCalendar.startDate, selectedCalendar.endDate)})`
           : 'Sin fecha';
-      
+
         this.bitacoraStatusCounts = this.bitacoras.reduce((acc, b) => {
           acc[b.status] = (acc[b.status] || 0) + 1;
           return acc;
         }, {} as { [key: string]: number });
-
         this.cd.detectChanges();
       },
       error: (err) => {
@@ -490,7 +582,7 @@ export class HomeComponent {
       this.toastService.error('No hay bitácoras para exportar', 'Sanico Drive Informa');
       return;
     }
-
+    
     const csvHeader = ['Nombre', 'Fecha', 'Hora', 'Status', 'Referencia'];
     const csvRows = this.bitacoras.map(order => [
       order.nameofAsistent,
@@ -519,7 +611,7 @@ export class HomeComponent {
 
     this.appService.pushNotifications(title, desc, token).subscribe({
       next: (res) => {
-        console.log(' Notificación enviada correctamente:', res);
+        // console.log(' Notificación enviada correctamente:', res);
       },
       error: (err) => {
         console.error(' Error al enviar la notificación:', err);
@@ -531,7 +623,7 @@ export class HomeComponent {
     const title = 'SanNico Drive Informa';
     this.appService.sendEmail(title, email, subject, status.toUpperCase(), date, time, msg).subscribe({
       next: (res) => {
-        console.log(' Notificación enviada correctamente:', res);
+        // console.log(' Notificación enviada correctamente:', res);
       },
       error: (err) => {
         console.error(' Error al enviar la notificación:', err);
@@ -542,17 +634,27 @@ export class HomeComponent {
   selectCalendar(cal: calendar) {
     this.selectedCalendar = { ...cal };
   }
+
   async deleteCalendar(uid: string) {
     if (confirm('¿Seguro que quieres eliminar este horario de citas?')) {
-      console.log('Eliminando calendario con UID:', uid);
-      
       await this.configService.deleteCalendar(uid);
       await this.loadCalendars();
       this.cd.detectChanges();
     }
   }
 
-  cancelEdit() {    
+  cancelEdit() {
+    this.selectedCalendar = null;
+
+    // 2) dejar listo el formulario como "Nuevo Curso"
+    this.newCalendar = {
+      title: '',
+      time: '',
+      maxSpaces: 0,
+      startDate: '',
+      endDate: '',
+      lastDateofSuscribe: null,
+    };
   }
 
   getCalendarTitle(uidCalendar: string): string {
@@ -572,10 +674,8 @@ export class HomeComponent {
 
     const [startYear, startMonth, startDay] = start.split('-').map(Number);
     const [endYear, endMonth, endDay] = end.split('-').map(Number);
-   
     const startDate = new Date(startYear, startMonth - 1, startDay);
     const endDate = new Date(endYear, endMonth - 1, endDay);
-
     const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     const sameMonth = startDate.getMonth() === endDate.getMonth();
 
@@ -584,6 +684,260 @@ export class HomeComponent {
     } else {
       return `${startDate.getDate()} ${monthNames[startDate.getMonth()]} - ${endDate.getDate()} ${monthNames[endDate.getMonth()]}`;
     }
+  }
+
+  exportUsers() {
+    const hasFiltersActive =
+      !!this.municipalityFilter?.trim() || !!this.dateFrom || !!this.dateTo;
+
+    const listToExport = hasFiltersActive
+      ? (this.filteredUsers ?? [])
+      : (this.usersList ?? []);
+
+    if (!listToExport.length) {
+      this.toastService.error('No hay usuarios para exportar', 'Sanico Drive Informa');
+      return;
+    }
+    const escapeCSV = (val: any) => {
+      if (val === null || val === undefined) return '';
+      const s = String(val);
+      if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+      return s;
+    };
+    const toDate = (value: any): Date | null => {
+      if (!value) return null;
+      if (typeof value?.toDate === 'function') return value.toDate();
+      if (value?.seconds) return new Date(value.seconds * 1000);
+      if (value instanceof Date) return value;
+      const d = new Date(value);
+      return isNaN(d.getTime()) ? null : d;
+    };
+    const formatDateForExcel = (value: any): string => {
+      const d = toDate(value);
+      if (!d) return '';
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    };
+    const csvHeader = [
+      'Nombre',
+      'Email',
+      'Teléfono',
+      'Colonia',
+      'Municipio',
+      'Calle',
+      'Fecha creación',
+      'Identificación'
+    ];
+
+    const csvRows = listToExport.map((u: any) => {
+      const nombre = u.displayName || `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim();
+
+      return [
+        nombre || '',
+        u.email || '',
+        u.phone || '',
+        u.colony || '',
+        u.municipality || '',
+        u.street || '',
+        formatDateForExcel(u.createdAt) || '',
+        this.userDocMap[u.uid] || ''
+      ].map(escapeCSV);
+    });
+
+    const csvContent = '\ufeff' + [csvHeader.map(escapeCSV), ...csvRows]
+      .map(row => row.join(','))
+      .join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    const tag = hasFiltersActive ? 'filtrados' : 'todos';
+    a.setAttribute('download', `usuarios-${tag}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }
+
+  notifyUser(u: any) {
+
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredUsers.length / this.pageSize));
+  }
+
+  get startItem(): number {
+    return this.pageIndex * this.pageSize;
+  }
+
+  get endItem(): number {
+    return Math.min(this.startItem + this.pageSize, this.filteredUsers.length);
+  }
+
+  applyFilters() {
+    const muni = this.municipalityFilter.trim().toLowerCase();
+
+    const from = this.dateFrom ? new Date(this.dateFrom + 'T00:00:00') : null;
+    const to = this.dateTo ? new Date(this.dateTo + 'T23:59:59') : null;
+    this.filteredUsers = (this.usersList ?? []).filter(u => {
+      const uMuni = (u.municipality ?? '').toString().toLowerCase();
+      const created = this.toDate((u as any).createdAt);
+      const muniOk = !muni || uMuni.includes(muni);
+      const dateFilteringActive = !!from || !!to;
+      if (!dateFilteringActive) return muniOk;
+      if (!created) return false;
+      const fromOk = !from || created >= from;
+      const toOk = !to || created <= to;
+      return muniOk && fromOk && toOk;
+    });
+
+    this.pageIndex = 0;
+    this.applyPagination();
+    this.cd.detectChanges();
+  }
+
+  applyPagination() {
+    const start = this.pageIndex * this.pageSize;
+    this.paginatedUsers = this.filteredUsers.slice(start, start + this.pageSize);
+  }
+
+  nextPage() {
+    if (this.pageIndex < this.totalPages - 1) {
+      this.pageIndex++;
+      this.applyPagination();
+      this.cd.detectChanges();
+    }
+  }
+
+  prevPage() {
+    if (this.pageIndex > 0) {
+      this.pageIndex--;
+      this.applyPagination();
+      this.cd.detectChanges();
+    }
+  }
+
+  clearUserFilters() {
+    this.municipalityFilter = '';
+    this.dateFrom = null;
+    this.dateTo = null;
+    this.applyFilters();
+  }
+
+  private toDate(value: any): Date | null {
+    if (!value) return null;
+    if (typeof value?.toDate === 'function') return value.toDate();
+    if (value?.seconds) return new Date(value.seconds * 1000);
+    if (value instanceof Date) return value;
+    const d = new Date(value);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  async loadUserDocument(uidUser: string) {
+    // ya lo tengo resuelto
+    if (this.userDocMap[uidUser] !== undefined) return;
+
+    // ya lo estoy cargando
+    if (this.loadingUids.has(uidUser)) return;
+    this.loadingUids.add(uidUser);
+
+    try {
+      const user = await this.appService.getUserById(uidUser);
+
+      if (!user) {
+        this.userDocMap[uidUser] = null; // importante: marcar como "no hay"
+        return;
+      }
+
+      this.userDocMap[uidUser] = user.urlDocument?.trim() ? user.urlDocument : null;
+
+    } catch (e) {
+      this.userDocMap[uidUser] = null;
+    } finally {
+      this.loadingUids.delete(uidUser);
+    }
+  }
+
+  private async preloadDocsForOrders(orders: Appointment[]) {
+    const uids = Array.from(
+      new Set((orders ?? []).map(o => o.uidUser).filter(Boolean))
+    );
+    await Promise.all(uids.map(uid => this.loadUserDocument(uid)));
+    this.cd.detectChanges();
+  }
+
+  onStatusChange() {
+    if (this.selectedStatusModal !== 'canceled') {
+      this.comments = '';
+    }
+  }
+
+  private applyCalendarPagination() {
+    const start = this.calendarPageIndex * this.calendarPageSize;
+    this.paginatedCalendars = (this.calendarList ?? []).slice(start, start + this.calendarPageSize);
+  }
+
+  get calendarTotalPages(): number {
+    return Math.max(1, Math.ceil((this.calendarList?.length ?? 0) / this.calendarPageSize));
+  }
+
+  nextCalendarPage() {
+    if (this.calendarPageIndex < this.calendarTotalPages - 1) {
+      this.calendarPageIndex++;
+      this.applyCalendarPagination();
+      this.cd.detectChanges();
+    }
+  }
+
+  prevCalendarPage() {
+    if (this.calendarPageIndex > 0) {
+      this.calendarPageIndex--;
+      this.applyCalendarPagination();
+      this.cd.detectChanges();
+    }
+  }
+
+  private applyOrdersPagination() {
+    const list = this.filteredOrders(); // usa tus filtros actuales
+    const start = this.ordersPageIndex * this.ordersPageSize;
+    this.paginatedOrders = list.slice(start, start + this.ordersPageSize);
+  }
+
+  get ordersTotalPages(): number {
+    const total = this.filteredOrders().length;
+    return Math.max(1, Math.ceil(total / this.ordersPageSize));
+  }
+
+  nextOrdersPage() {
+    if (this.ordersPageIndex < this.ordersTotalPages - 1) {
+      this.ordersPageIndex++;
+      this.applyOrdersPagination();
+      this.cd.detectChanges();
+    }
+  }
+
+  prevOrdersPage() {
+    if (this.ordersPageIndex > 0) {
+      this.ordersPageIndex--;
+      this.applyOrdersPagination();
+      this.cd.detectChanges();
+    }
+  }
+
+  onOrdersPageSizeChange() {
+    this.ordersPageIndex = 0;      // volver a la primera página
+    this.applyOrdersPagination();
+    this.cd.detectChanges();
+  }
+
+  resetOrdersPagination() {
+    this.ordersPageIndex = 0;
+    this.applyOrdersPagination();
+    this.cd.detectChanges();
   }
 
 }

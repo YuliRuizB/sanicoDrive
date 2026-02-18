@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { Timestamp } from 'firebase/firestore';
 
 @Component({
   selector: 'app-register',
@@ -46,17 +47,13 @@ export class RegisterComponent {
       return;
     }
 
-    const formValues = this.registerForm.value;
-
-    // Validar que las contraseñas coincidan
+    const formValues = this.registerForm.value;   
     if (formValues.password !== formValues.confirmPassword) {
       this.toastService.error('Las contraseñas no coinciden', 'Sanico Drive Informa');
 
       this.registerForm.get('confirmPassword')?.setErrors({ mismatch: true });
       return;
-    }
-
-    // Construir el objeto User con campos por default
+    }    
     const user = {
       firstName: formValues.firstName,
       lastName: formValues.lastName,
@@ -67,12 +64,12 @@ export class RegisterComponent {
       colony: formValues.colony || '',
       state: formValues.state,
       uidCompany: 'uHROo7SIDL7kJqr1fUER',
-      uid: '', // se asigna al crear el usuario
+      uid: '', 
       active: true,
       phoneInfo: {},
       terms: formValues.terms,
       createdAt: new Date().toISOString(),
-      createTimeStamp: Date.now(),
+      createTimeStamp: Timestamp.now(),
       role: 'admin'
     };
 

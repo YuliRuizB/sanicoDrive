@@ -22,8 +22,7 @@ export class DownPage {
        this.toastService.error('Escriba por favor su correo','Sanico Drive Informa');
       return;
     }
-    this.appoinment.deactivateUserByEmail(this.email.trim());
-    // Aquí podrías implementar la lógica real de solicitud de baja
+    this.appoinment.deactivateUserByEmail(this.email.trim());   
       this.toastService.error('Escriba por favor sus datos para tener acceso','Sanico Drive Informa');
   }
 

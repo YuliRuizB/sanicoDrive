@@ -19,8 +19,7 @@ export class AuthService {
         private auth: Auth,
         private firestore: Firestore,
         private router: Router
-    ) {
-        // Escuchar cambios de autenticación
+    ) {       
         onAuthStateChanged(this.auth, async (firebaseUser: FirebaseUser | null) => {
             if (firebaseUser) {
                 const userRef = doc(this.firestore, 'users', firebaseUser.uid);
@@ -30,8 +29,7 @@ export class AuthService {
                     const data = snap.data() as User;
                     this.userSource.next(data);
                     localStorage.setItem('user', JSON.stringify(data));
-                } else {
-                    // Solo email si no hay info en Firestore
+                } else {                    
                     this.userSource.next({
                         uid: firebaseUser.uid,
                         email: firebaseUser.email || '',
@@ -48,7 +46,7 @@ export class AuthService {
                         phoneInfo: {},
                         terms: false,
                         createdAt: new Date().toISOString(),
-                        createTimeStamp: Date.now(),
+                        createTimeStamp: Timestamp.now(),
                         role: 'admin',
                         token: ''
                     });
@@ -63,34 +61,27 @@ export class AuthService {
     isAuthenticated(): boolean {
         return !!localStorage.getItem('user');
     }
-
-    // Login
+   
     async login(email: string, password: string) {
         try {
-
-
             if (!email || !password) {
                 this.toastService.error('Escriba por favor sus datos para tener acceso','Sanico Drive Informa');
                 return;
             }
 
             const result = await signInWithEmailAndPassword(this.auth, email, password);
-            const uid = result.user.uid;
-            
-            // Obtener  datos del usuario para BehaviorSubject
+            const uid = result.user.uid;           
+          
             const userRef = doc(this.firestore, 'users', uid);
             const snap = await getDoc(userRef);
 
             if (snap.exists()) {
                 const data = snap.data() as User;
-                this.userSource.next(data);              
-
-                // Validar rol
+                this.userSource.next(data);                           
                 if (data.role !== 'admin') {
                     this.toastService.error('No tienes acceso a este sistema', 'Sanico Drive Informa');
                     throw new Error('No tienes acceso a este sistema');
                 }
-
                 localStorage.setItem('user', JSON.stringify(data));
                 this.router.navigate(['home']);
             } else {
@@ -100,8 +91,7 @@ export class AuthService {
 
             return result.user;
 
-        } catch (error: any) {
-            // Manejo de errores de Firebase
+        } catch (error: any) {          
             let message = 'Escriba por favor sus datos para tener acceso';
             if (error.code === 'auth/invalid-email') {
                 message = 'Correo inválido';
@@ -114,8 +104,7 @@ export class AuthService {
              return;
         }
     }
-
-    // Registrar usuario
+   
     async register(form: Partial<User> & { password: string }) {
         const cred = await createUserWithEmailAndPassword(this.auth, form.email!, form.password!);
 
@@ -135,7 +124,7 @@ export class AuthService {
             phoneInfo: form.phoneInfo || {},
             terms: form.terms ?? false,
             createdAt: form.createdAt ? form.createdAt : new Date().toISOString(),
-            createTimeStamp: form.createTimeStamp || Date.now(),
+            createTimeStamp: Timestamp.now(),
             role: form.role || 'user',
             token:form.token || ''
         };
@@ -144,22 +133,18 @@ export class AuthService {
         await setDoc(userRef, userData, { merge: true });
 
         this.userSource.next(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-
-        // Enviar verificación de correo
+        localStorage.setItem('user', JSON.stringify(userData));       
         if (!cred.user.emailVerified) {
             await sendEmailVerification(cred.user);
         }
 
         return cred.user;
     }
-
-    // Recuperar contraseña
+    
     forgotPassword(email: string) {
         return sendPasswordResetEmail(this.auth, email);
     }
-
-    // Logout
+    
     async logout() {
         await signOut(this.auth);
         this.userSource.next(null);
