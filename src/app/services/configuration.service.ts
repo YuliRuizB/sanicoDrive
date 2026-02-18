@@ -19,7 +19,8 @@ export class configurationService {
         const ordersRef = collection(this.firestore, 'calendar');
         const q = query(
             ordersRef,
-            where('uidCompany', '==', uidCompany)
+            where('uidCompany', '==', uidCompany),
+            where('active', '==', true)
         );
 
         return collectionData(q, { idField: 'uid' }) as Observable<any[]>;
@@ -37,7 +38,7 @@ export class configurationService {
     }
     async deleteCalendar(uid: string) {
         const docRef = doc(this.firestore, 'calendar', uid);
-        await deleteDoc(docRef);
+        await updateDoc(docRef, { active: false });
     }
 
 }

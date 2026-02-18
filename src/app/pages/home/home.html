@@ -1,20 +1,15 @@
-<div class="min-h-screen bg-gray-100">
-  <!-- Barra superior -->
+<div class="min-h-screen bg-gray-100"> 
   <header class="bg-white shadow-xl">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between relative">
-      <!-- Logo -->
+    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between relative">      
       <div class="flex items-center space-x-2">
-        <img src="assets/sanicodrivelogo.png" alt="Logo Sanico Drive"
-          class="h-10 w-10 rounded-full object-cover" />
+        <img src="assets/sanicodrivelogo.png" alt="Logo Sanico Drive" class="h-10 w-10 rounded-full object-cover" />
         <span class="text-lg font-bold text-gray-800">Sanico Drive</span>
       </div>
 
-      <!-- Título centrado -->
       <div class="absolute left-1/2 transform -translate-x-1/2">
         <h1 class="text-xl font-bold text-gray-800">Programación Citas</h1>
       </div>
-
-      <!-- Usuario -->
+      
       <div class="ml-auto flex items-center space-x-4">
         <span class="text-gray-700 font-medium">{{ user?.displayName }}</span>
         <a href="javascript:void(0)" (click)="logout()" class="relative group">
@@ -28,8 +23,7 @@
     </div>
   </header>
 
-  <main class="p-6">
-    <!-- Tabs -->
+  <main class="p-6">    
     <div class="flex justify-center mb-6 gap-6 text-lg font-semibold">
       <span class="cursor-pointer transition" [class.text-blue-600]="selectedTab === 'citas'"
         (click)="selectedTab = 'citas'">
@@ -45,11 +39,8 @@
         (click)="selectedTab = 'configuracion'">
         Configuración
       </span>
-    </div>
-
-    <!-- Bandeja de Entrada -->
-    <div *ngIf="selectedTab === 'citas'" class="flex h-screen p-6 bg-gray-100 gap-6">
-      <!-- 🧩 Filtros -->
+    </div>    
+    <div *ngIf="selectedTab === 'citas'" class="flex h-screen p-6 bg-gray-100 gap-6">      
       <div class="w-64 bg-white rounded-xl shadow-lg p-4 flex flex-col gap-4">
         <h3 class="text-lg font-semibold mb-2">Filtros</h3>
 
@@ -82,8 +73,7 @@
 
         <h3 class="text-sm font-medium text-gray-700 mt-2">Estatus Cita</h3>
         <div *ngFor="let status of statuses" (click)="setSelectedStatus(status.value)"
-          [class.bg-gray-100]="selectedStatus !== status.value"
-          [class.bg-gray-200]="selectedStatus === status.value"
+          [class.bg-gray-100]="selectedStatus !== status.value" [class.bg-gray-200]="selectedStatus === status.value"
           class="flex items-center justify-between p-2 rounded-lg shadow-sm hover:bg-gray-50 cursor-pointer transition">
           <div class="flex items-center gap-3">
             <span class="w-3 h-3 rounded-full" [ngClass]="status.colorClass"></span>
@@ -92,20 +82,18 @@
           <span class="text-gray-600 font-small">{{ status.count }}</span>
         </div>
       </div>
-
-      <!-- 🧩 Tabla de citas -->
+      
       <div class="flex-1 bg-white rounded-xl shadow-lg p-6 overflow-auto">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold">
             Citas ({{ selectedStatusName }})
           </h3>
-          <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
-            (click)="export()">
+          <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition" (click)="export()">
             Exportar
           </button>
         </div>
 
-        <table class="w-full text-left border-collapse">
+        <table class="w-full text-left border-collapse text-sm">
           <thead>
             <tr class="bg-gray-50">
               <th class="p-3 border-b">Asistente</th>
@@ -161,6 +149,34 @@
         </div>
       </div>
 
+      <div *ngIf="selectedBitacoraCalendar" class="w-full flex justify-center mb-4">
+        <div class="text-center bg-white border-2 border-black rounded-lg p-3 w-64">
+          <label class="font-medium block mb-1">Espacios Disponibles</label>
+          <span class="text-lg font-semibold">{{ getSelectedCalendarSpaces() }}</span>
+        </div>
+      </div>
+      
+      <div class="w-full flex justify-center mb-4" *ngIf="selectedBitacoraCalendar">
+        <table class="text-sm border-collapse border border-gray-300 w-64">
+          <thead>
+            <tr class="bg-gray-100">
+              <th class="p-2 border">Pendiente</th>
+              <th class="p-2 border">Aprobada</th>
+              <th class="p-2 border">Finalizada</th>
+              <th class="p-2 border">Cancelada</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="text-center">
+              <td class="p-2 border">{{ bitacoraStatusCounts['pending'] }}</td>
+              <td class="p-2 border">{{ bitacoraStatusCounts['approved'] }}</td>
+              <td class="p-2 border">{{ bitacoraStatusCounts['finalize' ]}}</td>
+              <td class="p-2 border">{{ bitacoraStatusCounts['canceled'] }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div class="w-full bg-white rounded-xl shadow-lg p-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-lg font-semibold">
@@ -170,7 +186,7 @@
             (click)="exportBitacoras()">Exportar</button>
         </div>
 
-        <table class="w-full text-left border-collapse">
+        <table class="w-full text-left border-collapse text-sm">
           <thead>
             <tr class="bg-gray-50">
               <th class="p-3 border-b">Asistente</th>
@@ -275,16 +291,14 @@
   <div *ngIf="showModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
     <div class="bg-white rounded-lg shadow-lg w-96 p-6">
       <h2 class="text-lg font-semibold mb-4">Cambiar estado de cita</h2>
-
-      <!-- Estado -->
+     
       <label for="status" class="block text-sm font-medium text-gray-700">Selecciona un estado:</label>
       <select [(ngModel)]="selectedStatusModal" id="status" class="w-full mt-2 border rounded px-3 py-2">
         <option *ngFor="let s of statusesList" [value]="s.value" [disabled]="s.value === 'all'">
           {{ s.name }}
         </option>
       </select>
-
-      <!-- Fecha -->
+    
       <label class="block mt-4 text-sm font-medium text-gray-700" for="filterCalendar">Selecciona una fecha:</label>
       <select id="filterCalendar" [(ngModel)]="selectedCalendar" class="w-full border rounded px-3 py-2 mt-2">
         <option value="" disabled selected>Selecciona fecha</option>
@@ -293,7 +307,6 @@
         </option>
       </select>
 
-      <!-- Botones -->
       <div class="flex justify-end space-x-2 mt-6">
         <button (click)="closeModal()" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">Cancelar</button>
         <button (click)="saveChange()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">

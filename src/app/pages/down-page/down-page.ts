@@ -1,13 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { ToastService } from '../../services/toast.service';
 import { AppointmentsService } from '../../services/appointments.service';
 
 @Component({
   selector: 'app-down-page',
-  imports: [RouterLink, ReactiveFormsModule,CommonModule,FormsModule],
+  imports: [ ReactiveFormsModule,CommonModule,FormsModule],
   templateUrl: './down-page.html',
   styleUrl: './down-page.css'
 })

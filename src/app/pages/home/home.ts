@@ -28,18 +28,15 @@ export class HomeComponent {
   selectedBitacoraDate: string = '';
   bitacoras: any[] = [];
   filterTime: string = '';
- selectedCalendar!: calendar;
+  selectedCalendar!: calendar;
   filterCalendar: string = '';
   selectedBitacoraCalendar: string = '';
-
   statuses = [
     { id: 0, name: 'Pendiente', value: 'pending', colorClass: 'bg-yellow-400', count: 0 },
     { id: 1, name: 'Aprobada', value: 'approved', colorClass: 'bg-green-500', count: 0 },
-    //  { id: 2, name: 'Finalizada', value: 'complete', colorClass: 'bg-blue-500', count: 0 },
     { id: 3, name: 'Cancelada', value: 'canceled', colorClass: 'bg-red-500', count: 0 },
     { id: 4, name: 'Todas', value: 'all', colorClass: 'bg-gray-400', count: 0 }
   ];
-
   statusesList = [
     { id: 0, name: 'Pendiente', value: 'pending', colorClass: 'bg-yellow-400', count: 0 },
     { id: 1, name: 'Aprobada', value: 'approved', colorClass: 'bg-green-500', count: 0 },
@@ -48,21 +45,21 @@ export class HomeComponent {
   ];
   newCalendar: Partial<calendar> = {
     title: '',
-    startDate: new Date(),
-    endDate: new Date(),
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
     time: '',
     amountSpaces: 1,
-    uidCompany:'uHROo7SIDL7kJqr1fUER'
+    uidCompany: 'uHROo7SIDL7kJqr1fUER',
+    active: true
   };
-
-
+  bitacoraStatusCounts: { [key: string]: number } = {};
   orders: Appointment[] = [];
   filterName: string = '';
   filterDate: string = '';
   selectedStatus: string = 'all';
   calendarList: calendar[] = [];
-  availableTimes: string[] = ['9:00 AM', '1:00 PM']; 
-selectedTime: string = '';
+  availableTimes: string[] = ['9:00 AM', '1:00 PM'];
+  selectedTime: string = '';
 
   constructor(
     private auth: AuthService,
@@ -77,7 +74,7 @@ selectedTime: string = '';
     this.auth.user$.subscribe(userData => {
       this.user = userData;
       if (userData) {
-         this.loadCalendars();
+        this.loadCalendars();
         this.getAppointments();
       }
     });
@@ -95,7 +92,7 @@ selectedTime: string = '';
           this.cd.detectChanges();
           return;
         }
-         
+
         this.orders = data.map(order => {
           let normalizedStatus = order.status ?? 'pending';
           if (normalizedStatus === 'finalized') normalizedStatus = 'complete';
@@ -110,8 +107,8 @@ selectedTime: string = '';
           return {
             active: order.active ?? true,
             createdDate: normalizeDate(order.createdDate),
-            requestedDate: order.requestedDate ?? '', // string yyyy-MM-dd
-            requestedTime: order.requestedTime ?? '', // string hh:mm AM/PM
+            requestedDate: order.requestedDate ?? '', 
+            requestedTime: order.requestedTime ?? '', 
             nameofAsistent: order.nameofAsistent ?? 'Sin nombre',
             status: normalizedStatus,
             uid: order.uid ?? '',
@@ -126,9 +123,9 @@ selectedTime: string = '';
         this.orders.sort((a, b) => {
           const dateA = a.requestedDate ? new Date(a.requestedDate).getTime() : 0;
           const dateB = b.requestedDate ? new Date(b.requestedDate).getTime() : 0;
-          return dateB - dateA; // descendente
-        });      
-        
+          return dateB - dateA; 
+        });
+
         this.updateStatusCounts();
         this.selectedStatus = 'all';
         this.cd.detectChanges();
@@ -156,26 +153,26 @@ selectedTime: string = '';
       this.cd.detectChanges();
     }
     await this.loadCalendars();
-    //this.selectedCalendar = [];
   }
 
-loadCalendars(): Promise<void> {
-  return new Promise((resolve) => {
-    this.configService.getCalendarList(this.user.uidCompany).subscribe({
-      next: (data) => {
-        this.calendarList = data;
-        this.cd.detectChanges();
-       
-        if (this.orders.length > 0) {
-          this.orders = [...this.orders];
+  loadCalendars(): Promise<void> {
+    return new Promise((resolve) => {
+      this.configService.getCalendarList(this.user.uidCompany).subscribe({
+        next: (data) => {
+          this.calendarList = data;
           this.cd.detectChanges();
-        }
-        resolve();
-      },
-      error: () => resolve()
+
+          if (this.orders.length > 0) {
+            this.orders = [...this.orders];
+            this.cd.detectChanges();
+          }
+          resolve();
+        },
+        error: () => resolve()
+      });
     });
-  });
-}
+  }
+
   resetStatusCounts() {
     this.statuses = this.statuses.map(s => ({ ...s, count: 0 }));
   }
@@ -192,22 +189,18 @@ loadCalendars(): Promise<void> {
     if (allItem) allItem.count = this.orders.length;
   }
 
-
-filteredOrders(): Appointment[] {
-  return this.orders.filter(order => {
-    const matchesToday = !this.filterToday || this.isCreatedToday(order.createdDate);
-    const matchesName = !this.filterName || order.nameofAsistent.toLowerCase().includes(this.filterName.toLowerCase());
-    const matchesStatus = !this.selectedStatus || this.selectedStatus === 'all' || order.status === this.selectedStatus;
-    const matchesCalendar = !this.filterCalendar || order.uidCalendar === this.filterCalendar;
-    return matchesToday && matchesName && matchesStatus && matchesCalendar;
-  });
-}
-
-
+  filteredOrders(): Appointment[] {
+    return this.orders.filter(order => {
+      const matchesToday = !this.filterToday || this.isCreatedToday(order.createdDate);
+      const matchesName = !this.filterName || order.nameofAsistent.toLowerCase().includes(this.filterName.toLowerCase());
+      const matchesStatus = !this.selectedStatus || this.selectedStatus === 'all' || order.status === this.selectedStatus;
+      const matchesCalendar = !this.filterCalendar || order.uidCalendar === this.filterCalendar;
+      return matchesToday && matchesName && matchesStatus && matchesCalendar;
+    });
+  }
 
   isCreatedToday(date: Date | null): boolean {
     if (!date) return false;
-
     const today = new Date();
     return (
       date.getDate() === today.getDate() &&
@@ -215,7 +208,6 @@ filteredOrders(): Appointment[] {
       date.getFullYear() === today.getFullYear()
     );
   }
-
 
   export() {
     const ordersToExport = this.filteredOrders();
@@ -256,43 +248,91 @@ filteredOrders(): Appointment[] {
   }
 
   async acceptApp(order: any) {
-
     try {
       const user = await this.appService.getUserById(order.uidUser);
-      if (user) {
-        this.appService.updateAppoinmentStatus(order.uid, 'approved');
-        this.toastService.success('Se aprobó la cita con éxito.', 'Sanico Drive Informa');
-        this.sendNotification("La cita a sido Aceptada.", user.token);
-      } else {
+      if (!user) {
         this.toastService.error('No existe el usuario asociado', 'Sanico Drive Informa');
+        return;
       }
+
+      const calendar = this.calendarList.find(c => c.uid === order.uidCalendar);
+      if (!calendar) {
+        this.toastService.error('No se encontró el calendario asociado a esta cita', 'Sanico Drive Informa');
+        return;
+      }
+      
+      if (calendar.amountSpaces <= 0) {
+        this.toastService.error('No hay espacios disponibles para aprobar esta cita.', 'Sanico Drive Informa');
+        return;
+      }
+     
+      if (order.status === 'approved') {
+        this.toastService.info('La cita ya estaba aprobada.', 'Sanico Drive Informa');
+        return;
+      }
+     
+      const newSpaces = calendar.amountSpaces - 1;
+     
+      await this.appService.updateAppoinmentStatus(order.uid, 'approved');
+    
+      await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
+
+      this.toastService.success('Se aprobó la cita con éxito.', 'Sanico Drive Informa');
+      this.sendNotification('La cita ha sido Aceptada.', user.token);
+      this.sendEmail(user.email, 'Cita Aceptada', 'approved', order.requestedDate, order.requestedTime, 'Tu cita ha sido Aceptada.');
+
+      
+      await this.loadCalendars();
+      this.getAppointments();
       this.cd.detectChanges();
+
     } catch (err) {
-      this.toastService.error('Error al obtener usuario', 'Sanico Drive Informa');
+      console.error(err);
+      this.toastService.error('Error al aprobar la cita', 'Sanico Drive Informa');
     }
   }
 
   async rejectApp(order: any) {
-
     try {
       const user = await this.appService.getUserById(order.uidUser);
-      if (user) {
-        this.appService.updateAppoinmentStatus(order.uid, 'rejected');
-        this.toastService.success('Se rechazo la cita con éxito.', 'Sanico Drive Informa');
-        this.sendNotification("La cita a sido Rechazada, favor de validar.", user.token);
-      } else {
+      if (!user) {
         this.toastService.error('No existe el usuario asociado', 'Sanico Drive Informa');
+        return;
       }
+
+      const calendar = this.calendarList.find(c => c.uid === order.uidCalendar);
+      if (!calendar) {
+        this.toastService.error('No se encontró el calendario asociado a esta cita', 'Sanico Drive Informa');
+        return;
+      }
+
+      let newSpaces = calendar.amountSpaces ?? 0;
+      
+      if (order.status === 'approved') {
+        newSpaces += 1;
+      }
+     
+      await this.appService.updateAppoinmentStatus(order.uid, 'rejected');     
+      await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
+
+      this.toastService.success('Se rechazó la cita con éxito.', 'Sanico Drive Informa');
+      this.sendNotification('La cita ha sido rechazada, favor de validar.', user.token);
+      this.sendEmail(user.email, 'Cita Rechazada', 'rejected', order.requestedDate, order.requestedTime, 'Tu cita ha sido Rechazada, favor de validar.');
+
+      await this.loadCalendars();
+      this.getAppointments();
       this.cd.detectChanges();
+
     } catch (err) {
-      this.toastService.error('Error al obtener usuario', 'Sanico Drive Informa');
+      console.error(err);
+      this.toastService.error('Error al rechazar la cita', 'Sanico Drive Informa');
     }
   }
 
   switchDateApp(order: any) {
-
     this.selectedOrder = order;
     this.selectedStatusModal = order.status;
+    this.selectedCalendar = this.calendarList.find(c => c.uid === order.uidCalendar)!;
     this.comments = '';
     this.showModal = true;
     this.cd.detectChanges();
@@ -307,53 +347,81 @@ filteredOrders(): Appointment[] {
   }
 
   async saveChange() {
-  if (!this.selectedOrder) return;
-
-  try {
-    const user = await this.appService.getUserById(this.selectedOrder.uidUser);
-
-    if (user) {      
-      this.selectedOrder.status = this.selectedStatusModal;
-      await this.appService.updateAppoinmentStatus(this.selectedOrder.uid, this.selectedOrder.status);           
-      
-      if (this.selectedCalendar) {
-        const updateData = {
-          uidCalendar: this.selectedCalendar.uid,     
-        };
-        await this.appService.updateAppointmentDetails(this.selectedOrder.uid, updateData);
-      }      
-      if (this.selectedStatusModal === 'finalize') {
-        await this.appService.updateAppoinmentStatusActive(this.selectedOrder.uid, false);
-      }
-      const dateInfo:string = "(" + this.selectedCalendar?.startDate + "-" +  this.selectedCalendar?.endDate + ")"
-
-      // Notifica al usuario
-      this.toastService.success('Se realizaron cambios en su cita, favor de validar.', 'Sanico Drive Informa');
-      this.sendNotification("Se realizaron cambios en su cita, favor de validar.", user.token);
-      this.sendEmail(user.email,`Status cita SanicoDrive cambiando a ${this.selectedStatusModal}`,this.selectedStatusModal,
-        dateInfo, this.selectedCalendar.time,'Si tiene alguna duda favor de comunicarse al numero  #.');
-
-      this.closeModal();
-      this.cd.detectChanges();
-    } else {
-      this.toastService.error('No existe el usuario asociado', 'Sanico Drive Informa');
+    if (!this.selectedOrder) {
+      this.toastService.error('No hay cita seleccionada.', 'Sanico Drive Informa');
+      return;
     }
+    const order = this.selectedOrder;
+    try {
+      const user = await this.appService.getUserById(order.uidUser);
+      if (!user) {
+        this.toastService.error('No existe el usuario asociado', 'Sanico Drive Informa');
+        this.showModal = false;
+        return;
+      }
 
-  } catch (err) {
-    console.error(err);
-    this.toastService.error('Error al guardar los cambios', 'Sanico Drive Informa');
+      const calendar = this.calendarList.find(c => c.uid === order.uidCalendar);
+      if (!calendar) {
+        this.toastService.error('No se encontró el calendario asociado a esta cita', 'Sanico Drive Informa');
+        this.showModal = false;
+        return;
+      }
+
+      const newStatus = this.selectedStatusModal;
+      let newSpaces = calendar.amountSpaces ?? 0;
+
+      if (newStatus === 'approved') {
+        if (calendar.amountSpaces <= 0) {
+          this.toastService.error('No hay espacios disponibles para aprobar esta cita.', 'Sanico Drive Informa');
+          return;
+        }
+        if (order.status !== 'approved') {
+          newSpaces -= 1;
+        }
+      }
+      if (newStatus !== 'approved' && order.status === 'approved') {
+        newSpaces += 1;
+      }
+
+      if (newStatus === 'rejected' && order.status === 'approved') {
+        newSpaces += 1;
+      }
+
+      await this.appService.updateAppoinmentStatus(order.uid, newStatus);
+
+      if (newSpaces !== calendar.amountSpaces) {
+        await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
+      }
+
+      this.toastService.success('Los cambios se guardaron con éxito.', 'Sanico Drive Informa');
+
+      const msg =
+        newStatus === 'approved'
+          ? 'Tu cita ha sido Aceptada.'
+          : newStatus === 'rejected'
+            ? 'Tu cita ha sido Rechazada, favor de validar.'
+            : 'Tu cita ha cambiado de estado.';
+      this.sendNotification(msg, user.token);
+      this.sendEmail(user.email, `Cita ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`, newStatus, order.requestedDate, order.requestedTime, msg);
+      
+      this.showModal = false;
+      await this.loadCalendars();
+      this.getAppointments();
+      this.cd.detectChanges();
+
+    } catch (err) {
+      console.error(err);
+      this.toastService.error('Error al guardar los cambios', 'Sanico Drive Informa');
+    }
   }
-}
-
 
   clearFilters() {
-    this.filterName = '';  
+    this.filterName = '';
     this.filterCalendar = '';
     this.selectedStatus = 'all';
     this.filterToday = false;
     this.cd.detectChanges();
   }
-
 
   logout() {
     this.auth.logout();
@@ -364,42 +432,58 @@ filteredOrders(): Appointment[] {
     switch (status) {
       case 'pending': return 'Pendiente';
       case 'approved': return 'Aprobada';
+      case 'finalize': return 'Finalizada';
       case 'complete': return 'Completada';
       case 'canceled': return 'Cancelada';
       default: return status;
     }
   }
 
-  loadBitacoras() {
-  if (!this.user?.uidCompany || !this.selectedBitacoraCalendar) {
-    this.bitacoras = [];
-    return;
+  getSelectedCalendarSpaces(): number | string {
+    if (!this.selectedBitacoraCalendar) return 'N/A';
+    const cal = this.calendarList.find(c => c.uid === this.selectedBitacoraCalendar);
+    return cal ? cal.amountSpaces : 'N/A';
   }
 
-  this.appService.getOrderBit(this.user.uidCompany, this.selectedBitacoraCalendar).subscribe({
-    next: (data) => {
-      this.bitacoras = data.map(order => ({
-        nameofAsistent: order.nameofAsistent ?? 'Sin nombre',
-        requestedDate: order.requestedDate ?? '',
-        requestedTime: order.requestedTime ?? '',
-        status: order.status ?? 'pending',
-        reference: order.reference ?? ''
-      }));
-
-      // Mostrar título o rango de fechas del calendario seleccionado
-      const selectedCalendar = this.calendarList.find(c => c.uid === this.selectedBitacoraCalendar);
-      this.selectedBitacoraDate = selectedCalendar
-        ? `${selectedCalendar.title} (${this.getShortDateRange(selectedCalendar.startDate, selectedCalendar.endDate)})`
-        : 'Sin fecha';
-
-      this.cd.detectChanges();
-    },
-    error: () => {
+  loadBitacoras() {
+    if (!this.user?.uidCompany || !this.selectedBitacoraCalendar) {
       this.bitacoras = [];
-      this.cd.detectChanges();
+      this.selectedBitacoraDate = '';
+      return;
     }
-  });
-}
+
+    this.appService.getOrderBit(this.user.uidCompany, this.selectedBitacoraCalendar).subscribe({
+      next: (data) => {             
+        this.bitacoras = data.map(order => ({
+          nameofAsistent: order.nameofAsistent ?? 'Sin nombre',
+          requestedDate: this.getCalendarTitle(order.uidCalendar) ?? '',
+          requestedTime: this.getCalendarTime(order.uidCalendar) ?? '',
+          status: order.status ?? 'pending',
+          reference: order.reference ?? ''
+        }));        
+        const selectedCalendar = this.calendarList.find(
+          c => c.uid?.toString() === this.selectedBitacoraCalendar?.toString()
+        );
+        this.selectedBitacoraDate = selectedCalendar
+          ? `${selectedCalendar.title} (${this.getShortDateRange(selectedCalendar.startDate, selectedCalendar.endDate)})`
+          : 'Sin fecha';
+      
+        this.bitacoraStatusCounts = this.bitacoras.reduce((acc, b) => {
+          acc[b.status] = (acc[b.status] || 0) + 1;
+          return acc;
+        }, {} as { [key: string]: number });
+
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al cargar bitácoras:', err);
+        this.bitacoras = [];
+        this.selectedBitacoraDate = '';
+        this.bitacoraStatusCounts = {};
+        this.cd.detectChanges();
+      }
+    });
+  }
 
   exportBitacoras() {
     if (!this.bitacoras.length) {
@@ -417,7 +501,6 @@ filteredOrders(): Appointment[] {
     ]);
 
     const csvContent = [csvHeader, ...csvRows].map(e => e.join(',')).join('\n');
-
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -429,7 +512,7 @@ filteredOrders(): Appointment[] {
     document.body.removeChild(a);
   }
 
-   sendNotification(descripion: string, strtoken: string) {
+  sendNotification(descripion: string, strtoken: string) {
     const title = 'SanNico Drive Informa';
     const desc = descripion;
     const token = strtoken;
@@ -444,11 +527,9 @@ filteredOrders(): Appointment[] {
     });
   }
 
-  sendEmail(email:string, subject:string,status :string,date:string,time:string , msg:string) {
-     const title = 'SanNico Drive Informa';
-
-
-    this.appService.sendEmail(title, email, subject,status.toUpperCase(),date,time,msg ).subscribe({
+  sendEmail(email: string, subject: string, status: string, date: string, time: string, msg: string) {
+    const title = 'SanNico Drive Informa';
+    this.appService.sendEmail(title, email, subject, status.toUpperCase(), date, time, msg).subscribe({
       next: (res) => {
         console.log(' Notificación enviada correctamente:', res);
       },
@@ -463,39 +544,46 @@ filteredOrders(): Appointment[] {
   }
   async deleteCalendar(uid: string) {
     if (confirm('¿Seguro que quieres eliminar este horario de citas?')) {
+      console.log('Eliminando calendario con UID:', uid);
+      
       await this.configService.deleteCalendar(uid);
       await this.loadCalendars();
       this.cd.detectChanges();
     }
   }
 
-  cancelEdit() {
-   // this.selectedCalendar = [];
+  cancelEdit() {    
   }
 
-  getCalendarTitle(uidCalendar: string): string {    
-    
-    const cal = this.calendarList.find(c => c.uid === uidCalendar);
+  getCalendarTitle(uidCalendar: string): string {
+    const cal = this.calendarList.find(c => c.uid?.toString() === uidCalendar?.toString());
     if (!cal) return '-';
     const range = this.getShortDateRange(cal.startDate, cal.endDate);
     return `${cal.title} (${range})`;
   }
 
-  getCalendarTime(uidCalendar: string): string {   
-    const cal = this.calendarList.find(c => c.uid === uidCalendar);
+  getCalendarTime(uidCalendar: string): string {
+    const cal = this.calendarList.find(c => c.uid?.toString() === uidCalendar?.toString());
     return cal ? cal.time : '-';
   }
 
-  getShortDateRange(start: any, end: any): string {
+  getShortDateRange(start: string, end: string): string {
     if (!start || !end) return '';
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+
+    const [startYear, startMonth, startDay] = start.split('-').map(Number);
+    const [endYear, endMonth, endDay] = end.split('-').map(Number);
+   
+    const startDate = new Date(startYear, startMonth - 1, startDay);
+    const endDate = new Date(endYear, endMonth - 1, endDay);
+
     const monthNames = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
     const sameMonth = startDate.getMonth() === endDate.getMonth();
+
     if (sameMonth) {
       return `${startDate.getDate()} - ${endDate.getDate()} ${monthNames[startDate.getMonth()]}`;
     } else {
       return `${startDate.getDate()} ${monthNames[startDate.getMonth()]} - ${endDate.getDate()} ${monthNames[endDate.getMonth()]}`;
     }
   }
+
 }

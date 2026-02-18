@@ -14,4 +14,6 @@ export interface Appointment {
   uidCalendar:string;
   uidUser: string;
   urlFile?: string;
+  title?:string;
+  time?:string;
 }

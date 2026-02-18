@@ -32,7 +32,7 @@ getOrderBit(uidCompany: string, calendarId: string): Observable<any[]> {
   const q = query(
     ordersRef,
     where('uidCompany', '==', uidCompany),
-    where('active', '==', true),
+   // where('active', '==', true),
     where('uidCalendar', '==', calendarId) //,
   //  where('status', '==', 'approved')
   );
@@ -48,16 +48,20 @@ getOrderBit(uidCompany: string, calendarId: string): Observable<any[]> {
 
 
   updateAppoinmentStatus(appointmentUid: string, status: string) {
-    const apptRef = doc(this.firestore, `appointments/${appointmentUid}`);
-    return updateDoc(apptRef, { status: status });
-
+    const apptRef = doc(this.firestore, `appointments/${appointmentUid}`);  
+    return updateDoc(apptRef, { status: status});
   }
+
+  updateCalendar(calendarUid: string, amountSpaces: number) {
+    const calendarRef = doc(this.firestore, `calendar/${calendarUid}`);
+    return updateDoc(calendarRef, { amountSpaces: amountSpaces });
+ }
 
   updateAppoinmentStatusActive(appointmentUid: string, active: boolean) {
     const apptRef = doc(this.firestore, `appointments/${appointmentUid}`);
     return updateDoc(apptRef, { active: active });
-
   }
+  
   updateAppointmentDetails(appointmentUid: string, data: any) {
     const apptRef = doc(this.firestore, `appointments/${appointmentUid}`);
     return updateDoc(apptRef, data);
