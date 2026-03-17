@@ -21,8 +21,8 @@ export class AppointmentsService {
     const q = query(
       ordersRef,
       where('uidCompany', '==', uidCompany),
-      where('active', '==', true)
-
+      where('active', '==', true),
+        orderBy('folio', 'asc')
     );
 
     return collectionData(q, { idField: 'uid' }) as Observable<any[]>;

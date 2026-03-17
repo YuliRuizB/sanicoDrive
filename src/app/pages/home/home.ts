@@ -77,7 +77,7 @@ export class HomeComponent {
   calendarPageIndex = 0;
   paginatedCalendars: calendar[] = [];
   ordersPageSizeOptions = [5, 10, 20, 40];
-  ordersPageSize = 10; // default
+  ordersPageSize = 10;
   ordersPageIndex = 0;
   paginatedOrders: Appointment[] = [];
 
@@ -106,6 +106,7 @@ export class HomeComponent {
   async getUsersList() {
     try {
       this.usersList = await this.appService.getUsersByCompany(this.user.uidCompany);
+      console.log(this.usersList);
 
       this.applyFilters();
     } catch (e) {
@@ -113,6 +114,20 @@ export class HomeComponent {
       this.toastService.error('No se pudieron cargar los usuarios.', 'Sanico Drive Informa');
     }
 
+  }
+
+  calculateAge(birthDateString: string): number {
+    const today = new Date();
+    const birthDate = new Date(birthDateString);
+
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const month = today.getMonth() - birthDate.getMonth();
+
+    if (month < 0 || (month === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    return age;
   }
 
   getAppointments() {
@@ -159,11 +174,11 @@ export class HomeComponent {
 
         this.preloadDocsForOrders(this.orders);
 
-        this.orders.sort((a, b) => {
-          const dateA = a.requestedDate ? new Date(a.requestedDate).getTime() : 0;
-          const dateB = b.requestedDate ? new Date(b.requestedDate).getTime() : 0;
-          return dateB - dateA;
-        });
+        /*  this.orders.sort((a, b) => {
+           const dateA = a.requestedDate ? new Date(a.requestedDate).getTime() : 0;
+           const dateB = b.requestedDate ? new Date(b.requestedDate).getTime() : 0;
+           return dateB - dateA;
+         }); */
 
         this.updateStatusCounts();
         this.selectedStatus = 'all';
@@ -228,13 +243,22 @@ export class HomeComponent {
     }
   }
 
+  private timeOrder(t: string): number {
+    return t === '9:00 AM' ? 9 : 13;
+  }
+
   loadCalendars(): Promise<void> {
 
     return new Promise((resolve) => {
       this.configService.getCalendarList(this.user.uidCompany).subscribe({
         next: (data) => {
 
-          this.calendarList = data;
+          this.calendarList = (data ?? []).sort((a, b) => {
+            const da = new Date(a.startDate).getTime();
+            const db = new Date(b.startDate).getTime();
+            if (da !== db) return da - db;
+            return this.timeOrder(a.time) - this.timeOrder(b.time);
+          });
           this.calendarPageIndex = 0;
           this.applyCalendarPagination();
 
@@ -291,7 +315,7 @@ export class HomeComponent {
     if (!ordersToExport.length) {
       this.toastService.error('No hay citas para exportar', 'Sanico Drive Informa');
       return;
-    }    
+    }
     const csvHeader = ['Nombre', 'Fecha', 'Hora', 'Comprobante', 'Identificacion'];
     const csvRows = ordersToExport.map(order => [
       order.nameofAsistent,
@@ -346,8 +370,8 @@ export class HomeComponent {
       await this.appService.updateAppoinmentStatus(order.uid, 'approved');
       await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
       this.toastService.success('Se aprobó la cita con éxito.', 'Sanico Drive Informa');
-      this.sendNotification('La cita ha sido Aceptada.', user.token);
-      this.sendEmail(user.email, 'Cita Aceptada', 'approved', calendar.startDate, calendar.time, 'Tu cita ha sido Aceptada.');
+      this.sendNotification('La cita ha sido Aprobada.', user.token);
+      this.sendEmail(user.email, 'Cita Aprobada', 'Aprobado', calendar.startDate, calendar.time, 'Tu cita ha sido Aprobada.');
 
       await this.loadCalendars();
       this.getAppointments();
@@ -355,7 +379,7 @@ export class HomeComponent {
 
     } catch (err) {
       console.error(err);
-      this.toastService.error('Error al aprobar la cita', 'Sanico Drive Informa');
+      this.toastService.error('Error al aprobar la cita' + err, 'Sanico Drive Informa');
     }
   }
 
@@ -379,7 +403,7 @@ export class HomeComponent {
       await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
       this.toastService.success('Se rechazó la cita con éxito.', 'Sanico Drive Informa');
       this.sendNotification('La cita ha sido rechazada, favor de validar.', user.token);
-      this.sendEmail(user.email, 'Cita Rechazada', 'rejected', calendar.startDate, calendar.time, 'Tu cita ha sido Rechazada, favor de validar.');
+      this.sendEmail(user.email, 'Cita Rechazada', 'Rechazada', calendar.startDate, calendar.time, 'Tu cita ha sido Rechazada, favor de validar.');
 
       await this.loadCalendars();
       this.getAppointments();
@@ -417,8 +441,6 @@ export class HomeComponent {
     const order = this.selectedOrder;
     const newStatus = this.selectedStatusModal;
     const reason = (this.comments ?? '').trim();
-
-    // Validación: razón obligatoria si cancelan
     if (newStatus === 'canceled' && !reason) {
       this.toastService.error('Escribe la razón de cancelación.', 'SanNico Drive Informa');
       return;
@@ -438,25 +460,26 @@ export class HomeComponent {
         this.showModal = false;
         return;
       }
-
       await this.appService.updateAppoinmentStatus(order.uid, newStatus);
-
-
       const statusLabel =
         this.statusesList.find(s => s.value === newStatus)?.name
         ?? (newStatus.charAt(0).toUpperCase() + newStatus.slice(1));
 
       let title = `Cita ${statusLabel}`;
       let description = 'Tu cita ha cambiado de estado.';
-
+      let statusWord = newStatus;
       if (newStatus === 'approved') {
         description = 'Tu cita ha sido Aceptada.';
+        statusWord = 'Aceptada';
       } else if (newStatus === 'rejected') {
         description = 'Tu cita ha sido Rechazada, favor de validar.';
+        statusWord = 'Rechazada';
       } else if (newStatus === 'finalize') {
         description = 'Tu cita ha sido Finalizada.';
+        statusWord = 'Finalizada';
       } else if (newStatus === 'canceled') {
         title = 'Cita Cancelada';
+        statusWord = 'Cancelada';
         description = `Tu cita ha sido Cancelada.\nRazón: ${reason}`;
       }
 
@@ -475,7 +498,7 @@ export class HomeComponent {
       this.sendEmail(
         user.email,
         title,
-        newStatus,
+        statusWord,
         calendar.startDate,
         calendar.time,
         description
@@ -582,7 +605,6 @@ export class HomeComponent {
       this.toastService.error('No hay bitácoras para exportar', 'Sanico Drive Informa');
       return;
     }
-    
     const csvHeader = ['Nombre', 'Fecha', 'Hora', 'Status', 'Referencia'];
     const csvRows = this.bitacoras.map(order => [
       order.nameofAsistent,
@@ -611,7 +633,6 @@ export class HomeComponent {
 
     this.appService.pushNotifications(title, desc, token).subscribe({
       next: (res) => {
-        // console.log(' Notificación enviada correctamente:', res);
       },
       error: (err) => {
         console.error(' Error al enviar la notificación:', err);
@@ -623,7 +644,6 @@ export class HomeComponent {
     const title = 'SanNico Drive Informa';
     this.appService.sendEmail(title, email, subject, status.toUpperCase(), date, time, msg).subscribe({
       next: (res) => {
-        // console.log(' Notificación enviada correctamente:', res);
       },
       error: (err) => {
         console.error(' Error al enviar la notificación:', err);
@@ -645,8 +665,6 @@ export class HomeComponent {
 
   cancelEdit() {
     this.selectedCalendar = null;
-
-    // 2) dejar listo el formulario como "Nuevo Curso"
     this.newCalendar = {
       title: '',
       time: '',
@@ -723,11 +741,13 @@ export class HomeComponent {
     const csvHeader = [
       'Nombre',
       'Email',
+      'Edad',
       'Teléfono',
       'Colonia',
       'Municipio',
       'Calle',
       'Fecha creación',
+      'Código Postal',
       'Identificación'
     ];
 
@@ -737,12 +757,14 @@ export class HomeComponent {
       return [
         nombre || '',
         u.email || '',
+        u.age ? this.calculateAge(u.age) : '',
         u.phone || '',
         u.colony || '',
         u.municipality || '',
         u.street || '',
         formatDateForExcel(u.createdAt) || '',
-        this.userDocMap[u.uid] || ''
+        u.postalCode || '',
+        u.urlDocument?.trim() ? u.urlDocument : null
       ].map(escapeCSV);
     });
 
@@ -838,10 +860,7 @@ export class HomeComponent {
   }
 
   async loadUserDocument(uidUser: string) {
-    // ya lo tengo resuelto
     if (this.userDocMap[uidUser] !== undefined) return;
-
-    // ya lo estoy cargando
     if (this.loadingUids.has(uidUser)) return;
     this.loadingUids.add(uidUser);
 
@@ -902,7 +921,7 @@ export class HomeComponent {
   }
 
   private applyOrdersPagination() {
-    const list = this.filteredOrders(); // usa tus filtros actuales
+    const list = this.filteredOrders();
     const start = this.ordersPageIndex * this.ordersPageSize;
     this.paginatedOrders = list.slice(start, start + this.ordersPageSize);
   }
@@ -929,7 +948,7 @@ export class HomeComponent {
   }
 
   onOrdersPageSizeChange() {
-    this.ordersPageIndex = 0;      // volver a la primera página
+    this.ordersPageIndex = 0;
     this.applyOrdersPagination();
     this.cd.detectChanges();
   }

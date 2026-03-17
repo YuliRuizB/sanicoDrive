@@ -314,10 +314,12 @@
             <tr class="bg-gray-50">
               <th class="p-3 border-b">Nombre</th>
               <th class="p-3 border-b">Email</th>
+              <th class="p-3 border-b">Edad</th>
               <th class="p-3 border-b">Teléfono</th>
               <th class="p-3 border-b">Colonia</th>
               <th class="p-3 border-b">Municipio</th>
               <th class="p-3 border-b">Calle</th>
+              <th class="p-3 border-b">Código Postal</th>
               <th class="p-3 border-b">Fecha creación</th>
             </tr>
           </thead>
@@ -326,11 +328,14 @@
             <tr *ngFor="let u of paginatedUsers" class="hover:bg-gray-50">
               <td class="p-3 border-b">{{ u.displayName || (u.firstName + ' ' + u.lastName) }}</td>
               <td class="p-3 border-b">{{ u.email }}</td>
+              <td class="p-3 border-b">
+                {{ calculateAge(u.age) || '—' }}
+              </td>
               <td class="p-3 border-b">{{ u.phone }}</td>
               <td class="p-3 border-b">{{ u.colony || '—' }}</td>
               <td class="p-3 border-b">{{ u.municipality || '—' }}</td>
               <td class="p-3 border-b">{{ u.street || '—' }}</td>
-
+              <td class="p-3 border-b">{{ u.postalCode || '—' }}</td>
               <td class="p-3 border-b">
                 {{ u.createdAt ? (u.createdAt | date:'mediumDate') : '—' }}
               </td>
