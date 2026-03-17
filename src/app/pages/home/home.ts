@@ -105,8 +105,7 @@ export class HomeComponent {
 
   async getUsersList() {
     try {
-      this.usersList = await this.appService.getUsersByCompany(this.user.uidCompany);
-      console.log(this.usersList);
+      this.usersList = await this.appService.getUsersByCompany(this.user.uidCompany);   
 
       this.applyFilters();
     } catch (e) {
@@ -591,7 +590,7 @@ export class HomeComponent {
         this.cd.detectChanges();
       },
       error: (err) => {
-        console.error('Error al cargar bitácoras:', err);
+        console.error('Error al cargar bitácoras:', err);       
         this.bitacoras = [];
         this.selectedBitacoraDate = '';
         this.bitacoraStatusCounts = {};

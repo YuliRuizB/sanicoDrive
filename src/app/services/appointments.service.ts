@@ -22,7 +22,7 @@ export class AppointmentsService {
       ordersRef,
       where('uidCompany', '==', uidCompany),
       where('active', '==', true),
-        orderBy('folio', 'asc')
+        orderBy('folio', 'desc')
     );
 
     return collectionData(q, { idField: 'uid' }) as Observable<any[]>;
