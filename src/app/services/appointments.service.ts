@@ -63,9 +63,9 @@ export class AppointmentsService {
   }
 
 
-  updateAppoinmentStatus(appointmentUid: string, status: string) {
+  updateAppoinmentStatus(appointmentUid: string, status: string , description: string) {
     const apptRef = doc(this.firestore, `appointments/${appointmentUid}`);
-    return updateDoc(apptRef, { status: status });
+    return updateDoc(apptRef, { status: status, description: description });
   }
 
   updateCalendar(calendarUid: string, amountSpaces: number) {

@@ -166,6 +166,7 @@ export class HomeComponent {
             urlFile: order.urlFile ?? '',
             reference: order.reference ?? '',
             uidCalendar: order.uidCalendar ?? '',
+            description: order.description ?? '',
             lastDateofSuscribe: normalizeDate(order.lastDateofSuscribe),
             folio: order.folio ?? ''
           };
@@ -366,7 +367,7 @@ export class HomeComponent {
         return;
       }
       const newSpaces = calendar.amountSpaces;
-      await this.appService.updateAppoinmentStatus(order.uid, 'approved');
+      await this.appService.updateAppoinmentStatus(order.uid, 'approved', "Tu cita ha sido Aprobada.");
       await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
       this.toastService.success('Se aprobó la cita con éxito.', 'Sanico Drive Informa');
       this.sendNotification('La cita ha sido Aprobada.', user.token);
@@ -398,7 +399,7 @@ export class HomeComponent {
       if (order.status === 'approved') {
         newSpaces;
       }
-      await this.appService.updateAppoinmentStatus(order.uid, 'rejected');
+      await this.appService.updateAppoinmentStatus(order.uid, 'rejected',"Cita Rechazada, favor de validar.");
       await this.configService.updateCalendar(calendar.uid!, { amountSpaces: newSpaces });
       this.toastService.success('Se rechazó la cita con éxito.', 'Sanico Drive Informa');
       this.sendNotification('La cita ha sido rechazada, favor de validar.', user.token);
@@ -416,9 +417,10 @@ export class HomeComponent {
 
   switchDateApp(order: any) {
     this.selectedOrder = order;
+    
     this.selectedStatusModal = order.status;
     this.selectedCalendar = this.calendarList.find(c => c.uid === order.uidCalendar)!;
-    this.comments = '';
+    this.comments = order.description || '';    
     this.showModal = true;
     this.cd.detectChanges();
   }
@@ -459,8 +461,8 @@ export class HomeComponent {
         this.showModal = false;
         return;
       }
-      await this.appService.updateAppoinmentStatus(order.uid, newStatus);
-      const statusLabel =
+
+       const statusLabel =
         this.statusesList.find(s => s.value === newStatus)?.name
         ?? (newStatus.charAt(0).toUpperCase() + newStatus.slice(1));
 
@@ -481,6 +483,8 @@ export class HomeComponent {
         statusWord = 'Cancelada';
         description = `Tu cita ha sido Cancelada.\nRazón: ${reason}`;
       }
+
+      await this.appService.updateAppoinmentStatus(order.uid, newStatus, description);
 
       await this.appService.addMessage({
         uidCompany: this.user.uidCompany,

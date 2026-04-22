@@ -573,11 +573,15 @@
 
       <div *ngIf="selectedStatusModal === 'canceled'" class="mt-6 border rounded-lg p-4 bg-gray-50">
         <h3 class="text-base font-semibold text-gray-800">Razón de cancelación</h3>
-        <p class="text-sm text-gray-600 mt-1">Notificar razón de cancelado.</p>
-
+        <p class="text-sm text-gray-600 mt-1">Notificar razón de cancelado.</p>    
         <label class="block mt-3 text-sm font-medium text-gray-700">Descripción:</label>
-        <textarea [(ngModel)]="comments" rows="4" class="w-full mt-2 border rounded px-3 py-2"
-          placeholder="Escribe la razón de la cancelación..."></textarea>
+      <textarea
+        [(ngModel)]="comments"
+        [readonly]="!!comments"
+        rows="4"
+        class="w-full mt-2 border rounded px-3 py-2 bg-gray-100"
+        placeholder="Escribe la razón de la cancelación...">
+      </textarea>
       </div>
 
       <div class="flex justify-end space-x-2 mt-8">
